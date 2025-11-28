@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessible Computational Notebook</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div id="app" role="application" aria-label="Computational Notebook">
+    <!-- Accessibility announcements -->
+    <div
+      id="sr-announcer"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+    ></div>
+
+    <!-- Toolbar -->
+    <nav id="toolbar" role="toolbar" aria-label="Notebook toolbar">
+      <div class="toolbar-group">
+        <button
+          id="add-code-cell-btn"
+          class="toolbar-btn"
+          aria-label="Add code cell below current cell (Alt+C)"
+          title="Alt+C"
+        >
+          <span aria-hidden="true">+ Code</span>
+        </button>
+        <button
+          id="add-markdown-cell-btn"
+          class="toolbar-btn"
+          aria-label="Add markdown cell below current cell (Alt+M)"
+          title="Alt+M"
+        >
+          <span aria-hidden="true">+ Markdown</span>
+        </button>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="interpreter-select" class="toolbar-label">Interpreter:</label>
+        <select
+          id="interpreter-select"
+          aria-label="Select interpreter"
+          class="toolbar-select"
+        >
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <button
+          id="run-cell-btn"
+          class="toolbar-btn primary"
+          aria-label="Run current cell (Shift+Enter)"
+          title="Shift+Enter"
+        >
+          <span aria-hidden="true">▶ Run</span>
+        </button>
+        <button
+          id="run-all-btn"
+          class="toolbar-btn"
+          aria-label="Run all cells (Alt+Shift+Enter)"
+          title="Alt+Shift+Enter"
+        >
+          <span aria-hidden="true">▶▶ Run All</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Notebook container -->
+    <main
+      id="notebook"
+      role="region"
+      aria-label="Notebook cells"
+      tabindex="-1"
+    >
+      <!-- Cells will be dynamically added here -->
+    </main>
+
+    <!-- Status bar -->
+    <footer
+      id="status-bar"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <span id="status-text">Ready</span>
+      <span id="cell-info" aria-label="Cell information">Cell 0 of 0</span>
+    </footer>
+  </div>
+
+  <!-- Keyboard shortcuts help dialog -->
+  <dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title">
+    <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+    <div class="shortcuts-content">
+      <h3>Navigation</h3>
+      <dl>
+        <dt>Arrow Up</dt><dd>Move to cell above</dd>
+        <dt>Arrow Down</dt><dd>Move to cell below</dd>
+        <dt>Tab</dt><dd>Move to next focusable element</dd>
+        <dt>Shift+Tab</dt><dd>Move to previous focusable element</dd>
+      </dl>
+
+      <h3>Editing</h3>
+      <dl>
+        <dt>Enter</dt><dd>Enter edit mode</dd>
+        <dt>Escape</dt><dd>Exit edit mode</dd>
+        <dt>Ctrl+Z</dt><dd>Undo</dd>
+        <dt>Ctrl+Y</dt><dd>Redo</dd>
+      </dl>
+
+      <h3>Cell Operations</h3>
+      <dl>
+        <dt>Shift+Enter</dt><dd>Run cell and move to next</dd>
+        <dt>Ctrl+Enter</dt><dd>Run cell</dd>
+        <dt>Alt+Enter</dt><dd>Run cell and insert below</dd>
+        <dt>Alt+C</dt><dd>Add code cell below</dd>
+        <dt>Alt+M</dt><dd>Add markdown cell below</dd>
+        <dt>Alt+Delete</dt><dd>Delete current cell</dd>
+      </dl>
+
+      <h3>Other</h3>
+      <dl>
+        <dt>Ctrl+S</dt><dd>Save notebook</dd>
+        <dt>Ctrl+/</dt><dd>Show this help</dd>
+      </dl>
+    </div>
+    <button id="close-shortcuts-btn" class="dialog-close">Close</button>
+  </dialog>
+
+  <script src="src/renderer/notebook.js"></script>
+  <script src="src/renderer/accessibility.js"></script>
+  <script src="src/renderer/keyboard.js"></script>
+  <script src="src/renderer/frontendAPI.js"></script>
+  <script src="src/renderer/app.js"></script>
+</body>
+</html>

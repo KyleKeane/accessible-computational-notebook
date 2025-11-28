@@ -1,0 +1,27 @@
+{
+  "name": "accessible-computational-notebook",
+  "version": "1.0.0",
+  "description": "An accessible, keyboard-optimized computational notebook with modular backend interpreters",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "notebook",
+    "accessibility",
+    "computational",
+    "electron",
+    "jupyter",
+    "wolfram"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^27.0.0"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0",
+    "vm2": "^3.9.19"
+  }
+}

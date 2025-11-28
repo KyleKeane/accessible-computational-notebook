@@ -1,0 +1,118 @@
+{
+  "cells": [
+    {
+      "id": "cell-0",
+      "type": "markdown",
+      "content": "# Welcome to Accessible Computational Notebook\n\nThis notebook will guide you through the basic features.\n\n## Getting Started\n\nUse the keyboard shortcuts to navigate:\n- Press **Shift+Enter** to run a cell\n- Press **Alt+C** to create a code cell\n- Press **Alt+M** to create a markdown cell\n- Press **Ctrl+/** to see all shortcuts",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-1",
+      "type": "code",
+      "content": "// JavaScript Example\n// This cell demonstrates basic JavaScript\n\nconst greeting = \"Hello from Accessible Notebook!\";\nconsole.log(greeting);\n\n// Variables persist between cells\nconst x = 42;",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-2",
+      "type": "code",
+      "content": "// Using the variable from the previous cell\nconsole.log(`The value of x is: ${x}`);\n\n// Mathematical operations\nconst result = x * 2 + 10;\nconsole.log(`Result: ${result}`);\n\nresult",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-3",
+      "type": "markdown",
+      "content": "## Frontend API\n\nYou can programmatically control the notebook using the FrontEnd API:",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-4",
+      "type": "code",
+      "content": "// Using the FrontEnd API\n\n// Get information about the notebook\nconst cellCount = FrontEnd.GetCellCount();\nconst currentIndex = FrontEnd.GetCurrentCellIndex();\n\nconsole.log(`Total cells: ${cellCount}`);\nconsole.log(`Current cell: ${currentIndex + 1}`);\n\n// Show a status message\nFrontEnd.ShowMessage('FrontEnd API is working!', 'success');",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-5",
+      "type": "markdown",
+      "content": "## Python Example\n\nSwitch the interpreter to Python using the dropdown in the toolbar, then run these cells:",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-6",
+      "type": "code",
+      "content": "# Python code example\n# Variables persist across cells in Python too\n\nname = \"Accessible Notebook\"\nversion = \"1.0.0\"\n\nprint(f\"Welcome to {name} v{version}\")",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-7",
+      "type": "code",
+      "content": "# Using variables from previous Python cells\nprint(f\"Running {name}\")\n\n# Define a function\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)\n\n# Calculate fibonacci\nfor i in range(10):\n    print(f\"fib({i}) = {fibonacci(i)}\")",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-8",
+      "type": "markdown",
+      "content": "## Accessibility Features\n\nThis notebook is fully keyboard accessible:\n\n- **Alt+H**: Describe current cell (screen reader friendly)\n- **Arrow keys**: Navigate between cells\n- **Enter**: Edit current cell\n- **Escape**: Exit edit mode\n- **Tab**: Indent code (in edit mode)\n\nAll features work with screen readers like NVDA, JAWS, and VoiceOver.",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-9",
+      "type": "code",
+      "content": "// Advanced FrontEnd API example\n// Creating cells programmatically\n\nconst createMathCells = () => {\n  const operations = [\n    { expr: \"2 + 2\", desc: \"Addition\" },\n    { expr: \"10 * 5\", desc: \"Multiplication\" },\n    { expr: \"100 / 4\", desc: \"Division\" }\n  ];\n  \n  operations.forEach(op => {\n    const code = `// ${op.desc}\\nconsole.log('${op.expr} =', ${op.expr});`;\n    FrontEnd.CreateCell('code', code);\n  });\n  \n  FrontEnd.ShowMessage(`Created ${operations.length} cells`, 'info');\n};\n\n// Uncomment to create cells:\n// createMathCells();\n\nconsole.log('Function defined. Uncomment the last line to run it.');",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    },
+    {
+      "id": "cell-10",
+      "type": "markdown",
+      "content": "## Next Steps\n\n1. Try creating your own cells with **Alt+C**\n2. Experiment with both JavaScript and Python\n3. Explore the FrontEnd API to automate workflows\n4. Save your notebook with **Ctrl+S**\n5. Check the documentation for more advanced features\n\nHappy coding!",
+      "output": "",
+      "metadata": {
+        "executionCount": null,
+        "lastExecuted": null
+      }
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2024-01-01T00:00:00.000Z"
+  }
+}
