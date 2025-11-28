@@ -29,7 +29,7 @@ class InterpreterManager {
     });
   }
 
-  async execute(interpreterName, code) {
+  async execute(interpreterName, code, context = {}) {
     const interpreter = this.interpreters.get(interpreterName);
 
     if (!interpreter) {
@@ -37,7 +37,8 @@ class InterpreterManager {
     }
 
     try {
-      const result = await interpreter.execute(code);
+      // Pass context (including notebookManager) to interpreter
+      const result = await interpreter.execute(code, context);
       return result;
     } catch (error) {
       throw new Error(`Execution error: ${error.message}`);

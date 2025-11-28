@@ -1,4 +1,5 @@
 const BaseInterpreter = require('./BaseInterpreter');
+const NotebookAPI = require('../notebook/NotebookAPI');
 const { VM } = require('vm2');
 
 class JavaScriptInterpreter extends BaseInterpreter {
@@ -7,13 +8,14 @@ class JavaScriptInterpreter extends BaseInterpreter {
       name: 'javascript',
       displayName: 'JavaScript (Node.js)',
       version: process.version,
-      description: 'JavaScript interpreter using Node.js VM',
+      description: 'JavaScript interpreter using Node.js VM with Notebook API',
       supportedFeatures: [
         'async/await',
         'ES6+',
         'modules',
         'console output',
-        'persistent context'
+        'persistent context',
+        'notebook manipulation'
       ]
     });
 
@@ -31,6 +33,7 @@ class JavaScriptInterpreter extends BaseInterpreter {
     });
 
     this.output = [];
+    this.currentNotebookAPI = null;
   }
 
   createConsole() {
@@ -61,8 +64,33 @@ class JavaScriptInterpreter extends BaseInterpreter {
     };
   }
 
-  async execute(code) {
+  async execute(code, context = {}) {
     this.output = [];
+
+    // If notebook manager is provided, add Notebook API to sandbox
+    if (context.notebookManager) {
+      const notebookAPI = new NotebookAPI(context.notebookManager, {
+        cellIndex: context.cellIndex
+      });
+
+      // Expose all NotebookAPI methods to the sandbox
+      const apiMethods = {};
+      Object.getOwnPropertyNames(Object.getPrototypeOf(notebookAPI)).forEach((method) => {
+        if (method !== 'constructor') {
+          apiMethods[method] = (...args) => notebookAPI[method](...args);
+        }
+      });
+
+      // Add to VM sandbox
+      Object.keys(apiMethods).forEach((key) => {
+        this.vm.sandbox[key] = apiMethods[key];
+      });
+
+      // Also create a Notebook object for namespaced access
+      this.vm.sandbox.Notebook = apiMethods;
+
+      this.currentNotebookAPI = notebookAPI;
+    }
 
     try {
       let result = this.vm.run(code);
