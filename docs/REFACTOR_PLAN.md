@@ -207,15 +207,21 @@ open/save/save-as/dirty tracking; accessible renderer (cells, modal keyboard
 navigation, two live regions, help dialog); docs (README, ARCHITECTURE,
 ACCESSIBILITY); CI.
 
-### Milestone 2 — interaction depth
+### Milestone 2 — interaction depth (largely done)
 
-- Streaming output (protocol already event-shaped; flush stream messages
-  before `result`).
-- Kernel interrupt/restart UI affordances and timeout policy settings.
-- Notebook automation API exposed *inside* kernels (`notebook.insert_cell(…)`
-  from Python/JS — the old "FrontEnd tokens" idea, rebuilt on the protocol).
-- Cell-level undo/redo of structural operations.
-- Find / replace across cells.
+- [x] Streaming output: kernels emit `stream` messages while a cell runs;
+  the store coalesces chunks and the cell updates live.
+- [x] Notebook automation API exposed *inside* kernels — the old "FrontEnd
+  tokens" idea, rebuilt on the protocol: `notebook.insert_cell(…)` etc. from
+  Python (synchronous) and `await notebook.insertCell(…)` from JavaScript,
+  tested end-to-end through real kernel processes.
+- [x] Cell-level undo/redo of structural operations (insert, delete, move,
+  type change) on `Ctrl+Alt+Z` / `Ctrl+Alt+Y`; text editing stays on the
+  editor's native undo.
+- [x] Find / replace across cells (`Ctrl+F`, non-modal dialog, announced
+  matches: "Match 2 of 7: cell 3, line 4").
+- [ ] Execution timeout policy / settings surface (interrupt and restart are
+  already in the Kernel menu).
 
 ### Milestone 3 — rich content & distribution
 

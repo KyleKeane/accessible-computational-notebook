@@ -85,6 +85,88 @@ test('load replaces state and tolerates empty notebooks', () => {
   assert.equal(store.dirty, false);
 });
 
+test('appendOutput coalesces consecutive same-channel streams', () => {
+  const store = new NotebookStore();
+  const id = store.cells[0].id;
+  store.appendOutput(id, { type: 'stream', name: 'stdout', text: 'a' });
+  store.appendOutput(id, { type: 'stream', name: 'stdout', text: 'b' });
+  store.appendOutput(id, { type: 'stream', name: 'stderr', text: 'c' });
+  store.appendOutput(id, { type: 'execute_result', text: '1' });
+  assert.deepEqual(store.getCell(id).outputs, [
+    { type: 'stream', name: 'stdout', text: 'ab' },
+    { type: 'stream', name: 'stderr', text: 'c' },
+    { type: 'execute_result', text: '1' }
+  ]);
+});
+
+test('undo/redo: insert and delete are inverses, outputs survive', () => {
+  const store = new NotebookStore();
+  const first = store.cells[0];
+  const inserted = store.insertCell({ relativeTo: first.id, position: 'below', source: 'x' });
+  store.setOutputs(inserted.id, [{ type: 'execute_result', text: '7' }], 3);
+
+  assert.equal(store.undo(), 'insert code cell');
+  assert.equal(store.cellCount, 1);
+  assert.equal(store.redo(), 'insert code cell');
+  assert.equal(store.cells[1].source, 'x');
+
+  store.deleteCell(store.cells[1].id);
+  assert.equal(store.cellCount, 1);
+  assert.equal(store.undo(), 'delete code cell');
+  assert.equal(store.cellCount, 2);
+  assert.equal(store.cells[1].source, 'x');
+  assert.deepEqual(store.cells[1].outputs, [{ type: 'execute_result', text: '7' }]);
+  assert.equal(store.cells[1].executionCount, 3);
+});
+
+test('undo/redo: move and type change', () => {
+  const store = new NotebookStore();
+  const a = store.cells[0];
+  const b = store.insertCell({ relativeTo: a.id, position: 'below' });
+  store.moveCell(a.id, 'down');
+  assert.deepEqual(store.cells.map((c) => c.id), [b.id, a.id]);
+  assert.equal(store.undo(), 'move cell down');
+  assert.deepEqual(store.cells.map((c) => c.id), [a.id, b.id]);
+
+  store.setOutputs(a.id, [{ type: 'execute_result', text: '1' }], 1);
+  store.setCellType(a.id, 'markdown');
+  assert.deepEqual(store.getCell(a.id).outputs, []);
+  assert.equal(store.undo(), 'change cell to markdown');
+  assert.equal(store.getCell(a.id).type, 'code');
+  assert.deepEqual(store.getCell(a.id).outputs, [{ type: 'execute_result', text: '1' }]);
+});
+
+test('undo stack: a new operation clears the redo stack; empty stacks return null', () => {
+  const store = new NotebookStore();
+  assert.equal(store.undo(), null);
+  assert.equal(store.redo(), null);
+  const a = store.cells[0];
+  store.insertCell({ relativeTo: a.id, position: 'below' });
+  store.undo();
+  store.insertCell({ relativeTo: a.id, position: 'below', type: 'markdown' });
+  assert.equal(store.redo(), null);
+});
+
+test('undo: sequential undo restores the original order exactly', () => {
+  const store = new NotebookStore();
+  const a = store.cells[0];
+  store.updateSource(a.id, 'first');
+  const b = store.insertCell({ relativeTo: a.id, position: 'below', source: 'second' });
+  store.insertCell({ relativeTo: b.id, position: 'below', source: 'third' });
+  store.moveCell(b.id, 'down');
+  store.deleteCell(a.id);
+
+  while (store.undo()) { /* unwind everything */ }
+  assert.deepEqual(store.cells.map((c) => c.source), ['first']);
+});
+
+test('reset and load clear the undo history', () => {
+  const store = new NotebookStore();
+  store.insertCell({ relativeTo: store.cells[0].id, position: 'below' });
+  store.load({ cells: [{ type: 'code', source: 'x' }], metadata: {} });
+  assert.equal(store.undo(), null);
+});
+
 test('clearAllOutputs clears every cell', () => {
   const store = new NotebookStore();
   const a = store.cells[0];

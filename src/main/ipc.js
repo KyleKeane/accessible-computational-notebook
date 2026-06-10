@@ -5,6 +5,7 @@
 
 import { ipcMain } from 'electron';
 import { createCommands } from './commands.js';
+import { createNotebookApi, handleApiRequest } from './kernels/notebook-api.js';
 
 export function sendToRenderer(window, channel, payload) {
   if (window && !window.isDestroyed()) {
@@ -34,6 +35,16 @@ export function registerIpc({ store, kernels, getWindow }) {
 
   kernels.on('status-changed', ({ name, status }) => {
     sendToRenderer(getWindow(), 'kernel-status-changed', { name, status });
+  });
+
+  // Notebook automation requests made by code running inside a kernel.
+  const notebookApi = createNotebookApi(store);
+  kernels.on('api-request', ({ request, respond }) => {
+    try {
+      respond(handleApiRequest(notebookApi, request) ?? null, null);
+    } catch (error) {
+      respond(null, error.message);
+    }
   });
 
   ipcMain.handle('notebook:get-state', () => ({
@@ -75,6 +86,10 @@ export function registerIpc({ store, kernels, getWindow }) {
         return commands.clearOutputs();
       case 'clear-all-outputs':
         return commands.clearAllOutputs();
+      case 'undo-cell-operation':
+        return commands.undoCellOperation();
+      case 'redo-cell-operation':
+        return commands.redoCellOperation();
       default:
         throw new Error(`Unknown command: ${name}`);
     }

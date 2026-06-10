@@ -172,6 +172,37 @@ dialog {
 
 dialog::backdrop { background: rgb(0 0 0 / 50%); }
 
+/* The find dialog is non-modal and floats above the cells. */
+#find-dialog {
+  position: fixed;
+  top: 3.5rem;
+  right: 1rem;
+  margin: 0;
+  z-index: 10;
+}
+
+#find-dialog h1 { font-size: 1.1rem; margin-top: 0; }
+.dialog-hint { color: var(--muted); font-size: 0.85rem; max-width: 28rem; }
+
+.find-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.find-row label { min-width: 7rem; }
+
+.find-row input[type="text"] {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  flex: 1;
+}
+
 dialog dt { font-weight: 600; font-family: var(--mono); margin-top: 0.5rem; }
 dialog dd { margin: 0 0 0.25rem 1rem; }
 

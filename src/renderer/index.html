@@ -30,6 +30,29 @@
     <span id="status-dirty"></span>
   </footer>
 
+  <dialog id="find-dialog" aria-labelledby="find-title">
+    <h1 id="find-title">Find and replace</h1>
+    <p class="dialog-hint">Searches all cells. Enter finds the next match and moves focus to it; the dialog stays open.</p>
+    <div class="find-row">
+      <label for="find-input">Find</label>
+      <input id="find-input" type="text" autocomplete="off">
+    </div>
+    <div class="find-row">
+      <label for="replace-input">Replace with</label>
+      <input id="replace-input" type="text" autocomplete="off">
+    </div>
+    <div class="find-row">
+      <input id="find-case" type="checkbox">
+      <label for="find-case">Match case</label>
+    </div>
+    <div class="find-row">
+      <button id="find-next" type="button">Find next</button>
+      <button id="find-replace" type="button">Replace</button>
+      <button id="find-replace-all" type="button">Replace all</button>
+      <button id="find-close" type="button">Close</button>
+    </div>
+  </dialog>
+
   <dialog id="help-dialog" aria-labelledby="help-title">
     <h1 id="help-title">Keyboard shortcuts</h1>
     <p>Every command is also available in the menu bar (press Alt or F10).</p>
@@ -62,6 +85,8 @@
       <dt>Ctrl+Shift+M</dt><dd>Insert markdown cell below</dd>
       <dt>Ctrl+Shift+D</dt><dd>Delete cell</dd>
       <dt>Alt+Up / Alt+Down</dt><dd>Move cell up / down</dd>
+      <dt>Ctrl+Alt+Z / Ctrl+Alt+Y</dt><dd>Undo / redo cell operations (insert, delete, move, type change)</dd>
+      <dt>Ctrl+F</dt><dd>Find and replace across all cells</dd>
       <dt>Tab / Shift+Tab in an editor</dt><dd>Indent / unindent (press Escape first to move focus instead)</dd>
     </dl>
 

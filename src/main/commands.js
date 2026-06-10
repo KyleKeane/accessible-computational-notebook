@@ -45,17 +45,28 @@ export function createCommands({ store, kernels, getWindow }) {
     const position = store.indexOf(cell.id) + 1;
     announce(`Running cell ${position}`);
     sendToRenderer(getWindow(), 'cell-execution-started', { id: cell.id });
+    store.clearOutputs(cell.id);
 
     const { status, outputs, executionCount } = await kernels.execute(
       store.metadata.kernelName,
-      cell.source
+      cell.source,
+      {
+        // Stream output appears in the cell as it is produced.
+        onStream: ({ name, text }) => {
+          if (store.getCell(cell.id)) {
+            store.appendOutput(cell.id, { type: 'stream', name, text });
+          }
+        }
+      }
     );
 
     // The cell may have been deleted while the kernel was busy.
     if (!store.getCell(cell.id)) return;
-    store.setOutputs(cell.id, outputs, executionCount);
+    for (const output of outputs) store.appendOutput(cell.id, output);
+    store.setExecutionCount(cell.id, executionCount);
     sendToRenderer(getWindow(), 'cell-execution-finished', { id: cell.id, status });
-    announce(`Cell ${position} ${status === 'ok' ? 'done' : 'failed'}. ${outputSummary(status, outputs)}`, status === 'error');
+    const allOutputs = store.getCell(cell.id).outputs;
+    announce(`Cell ${position} ${status === 'ok' ? 'done' : 'failed'}. ${outputSummary(status, allOutputs)}`, status === 'error');
 
     if (advance && status === 'ok') advanceFrom(cell.id);
   }
@@ -143,6 +154,18 @@ export function createCommands({ store, kernels, getWindow }) {
     announce(`${spec?.displayName ?? name} kernel is ${kernels.status(name)}`);
   }
 
+  function undoCellOperation() {
+    const label = store.undo();
+    announce(label ? `Undid ${label}` : 'Nothing to undo');
+    if (label && store.activeCellId) focusCell(store.activeCellId);
+  }
+
+  function redoCellOperation() {
+    const label = store.redo();
+    announce(label ? `Redid ${label}` : 'Nothing to redo');
+    if (label && store.activeCellId) focusCell(store.activeCellId);
+  }
+
   function clearOutputs() {
     if (store.activeCellId) {
       store.clearOutputs(store.activeCellId);
@@ -168,6 +191,8 @@ export function createCommands({ store, kernels, getWindow }) {
     kernelStatus,
     clearOutputs,
     clearAllOutputs,
+    undoCellOperation,
+    redoCellOperation,
     announce
   };
 }

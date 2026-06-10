@@ -55,6 +55,8 @@ Like Jupyter, a cell is either *selected* (focus on the cell itself) or
 | `Ctrl+Shift+D` | anywhere | delete cell |
 | `Alt+Up` / `Alt+Down` | anywhere | move cell up / down |
 | `Ctrl+Shift+I` / `Ctrl+Shift+O` | anywhere | describe cell / read its output |
+| `Ctrl+Alt+Z` / `Ctrl+Alt+Y` | anywhere | undo / redo cell operations |
+| `Ctrl+F` | anywhere | find and replace across cells |
 | `Ctrl+.` / `Ctrl+Shift+.` | anywhere | interrupt / restart kernel |
 | `F6` | anywhere | cycle toolbar / cells / status bar |
 
@@ -71,9 +73,30 @@ are available in the next, across runs, until you restart the kernel.
 - **JavaScript (Node.js)** — a persistent `node:vm` context in a child
   process, with `console` capture, awaited promises, and top-level `await`.
 
+Output **streams into the cell as it is produced**, and a summary is
+announced when the cell finishes.
+
 Each kernel is a plain child process speaking a small JSON-lines protocol, so
 adding a language means writing one runner script — see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+### Scripting the notebook from a cell
+
+Code running in a kernel can manipulate the notebook itself through the
+`notebook` object (cell indices are 0-based):
+
+```python
+# Python
+created = notebook.insert_cell(source="print('generated')", type="code")
+notebook.set_source(created["index"], "print('edited')")
+notebook.cell_count()
+```
+
+```javascript
+// JavaScript (the API is async)
+const created = await notebook.insertCell({ source: "1 + 1" });
+await notebook.getSource(created.index);
+```
 
 > Note: as in Jupyter, notebook code is *your* code and runs with your
 > privileges. The child-process design is for robustness and restartability,

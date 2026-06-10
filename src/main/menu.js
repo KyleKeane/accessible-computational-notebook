@@ -37,7 +37,24 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
-        { role: 'selectAll' }
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'Undo Cell Operation',
+          accelerator: 'CmdOrCtrl+Alt+Z',
+          click: () => commands.undoCellOperation()
+        },
+        {
+          label: 'Redo Cell Operation',
+          accelerator: 'CmdOrCtrl+Alt+Y',
+          click: () => commands.redoCellOperation()
+        },
+        { type: 'separator' },
+        {
+          label: 'Find and Replace…',
+          accelerator: 'CmdOrCtrl+F',
+          click: toRenderer('show-find')
+        }
       ]
     },
     {

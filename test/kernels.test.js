@@ -36,6 +36,17 @@ function textOf(outputs, type) {
   return outputs.filter((o) => o.type === type).map((o) => o.text).join('');
 }
 
+/** Execute and collect streamed output alongside the final result. */
+async function executeCollect(kernel, code) {
+  const streams = [];
+  const result = await kernel.execute(code, {
+    onStream: ({ name, text }) => streams.push({ name, text })
+  });
+  const streamText = (name) =>
+    streams.filter((s) => s.name === name).map((s) => s.text).join('');
+  return { ...result, streams, stdout: streamText('stdout'), stderr: streamText('stderr') };
+}
+
 test('python: state persists across executions', async () => {
   const kernel = pythonKernel();
   try {
@@ -50,14 +61,16 @@ test('python: state persists across executions', async () => {
   }
 });
 
-test('python: stdout, stderr, and trailing expression', async () => {
+test('python: stdout, stderr stream during execution; trailing expression', async () => {
   const kernel = pythonKernel();
   try {
-    const result = await kernel.execute(
+    const result = await executeCollect(
+      kernel,
       'import sys\nprint("out")\nprint("err", file=sys.stderr)\n"value"'
     );
     assert.equal(result.status, 'ok');
-    assert.equal(textOf(result.outputs, 'stream'), 'out\nerr\n');
+    assert.equal(result.stdout, 'out\n');
+    assert.equal(result.stderr, 'err\n');
     assert.equal(textOf(result.outputs, 'execute_result'), "'value'");
   } finally {
     kernel.stop();
@@ -96,8 +109,8 @@ test('python: errors are structured and the session survives them', async () => 
 test('python: output containing ">>> " is not corrupted', async () => {
   const kernel = pythonKernel();
   try {
-    const result = await kernel.execute('print(">>> not a prompt")');
-    assert.equal(textOf(result.outputs, 'stream'), '>>> not a prompt\n');
+    const result = await executeCollect(kernel, 'print(">>> not a prompt")');
+    assert.equal(result.stdout, '>>> not a prompt\n');
   } finally {
     kernel.stop();
   }
@@ -118,11 +131,9 @@ test('javascript: state persists across executions', async () => {
 test('javascript: console goes to streams, objects are inspected', async () => {
   const kernel = jsKernel();
   try {
-    const result = await kernel.execute('console.log("hi", { a: 1 }); console.error("bad");');
-    const stdout = result.outputs.filter((o) => o.type === 'stream' && o.name === 'stdout');
-    const stderr = result.outputs.filter((o) => o.type === 'stream' && o.name === 'stderr');
-    assert.equal(stdout[0].text, 'hi { a: 1 }\n');
-    assert.equal(stderr[0].text, 'bad\n');
+    const result = await executeCollect(kernel, 'console.log("hi", { a: 1 }); console.error("bad");');
+    assert.equal(result.stdout, 'hi { a: 1 }\n');
+    assert.equal(result.stderr, 'bad\n');
   } finally {
     kernel.stop();
   }
@@ -133,11 +144,12 @@ test('javascript: promise results are awaited; top-level await works', async () 
   try {
     const promised = await kernel.execute('Promise.resolve(7)');
     assert.equal(textOf(promised.outputs, 'execute_result'), '7');
-    const awaited = await kernel.execute(
+    const awaited = await executeCollect(
+      kernel,
       'var v = await new Promise(r => setTimeout(() => r("done"), 10)); console.log(v)'
     );
     assert.equal(awaited.status, 'ok');
-    assert.equal(textOf(awaited.outputs, 'stream'), 'done\n');
+    assert.equal(awaited.stdout, 'done\n');
   } finally {
     kernel.stop();
   }

@@ -53,13 +53,16 @@ export class KernelManager extends EventEmitter {
       kernel.on('status-changed', (status) => {
         this.emit('status-changed', { name, status });
       });
+      kernel.on('api-request', (event) => {
+        this.emit('api-request', { name, ...event });
+      });
       this.kernels.set(name, kernel);
     }
     return this.kernels.get(name);
   }
 
-  execute(name, code) {
-    return this.get(name).execute(code);
+  execute(name, code, callbacks = {}) {
+    return this.get(name).execute(code, callbacks);
   }
 
   interrupt(name) {

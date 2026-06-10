@@ -4,9 +4,11 @@
 
 import { NotebookView } from './view.js';
 import { setupKeyboard } from './keyboard.js';
+import { setupFind } from './find.js';
 
 const api = window.notebook;
 const view = new NotebookView(api);
+const find = setupFind(api, view);
 
 async function refresh() {
   const state = await api.getState();
@@ -27,6 +29,10 @@ async function refresh() {
 api.onEvent((channel, payload) => {
   if (channel === 'notebook-replaced') {
     refresh();
+    return;
+  }
+  if (channel === 'show-find') {
+    find.open();
     return;
   }
   view.handleEvent(channel, payload);

@@ -73,6 +73,22 @@ export class ProcessKernel extends EventEmitter {
     } catch {
       return;
     }
+    if (message.type === 'stream') {
+      this.pending.get(message.id)?.onStream?.({ name: message.name, text: message.text });
+      this.emit('stream', { id: message.id, name: message.name, text: message.text });
+      return;
+    }
+    if (message.type === 'api') {
+      this.emit('api-request', {
+        request: { method: message.method, args: message.args ?? {} },
+        respond: (value, error = null) => {
+          this.process?.stdin.write(
+            JSON.stringify({ type: 'api-result', apiId: message.apiId, value, error }) + '\n'
+          );
+        }
+      });
+      return;
+    }
     if (message.type === 'result' && this.pending.has(message.id)) {
       const { resolve } = this.pending.get(message.id);
       this.pending.delete(message.id);
@@ -101,10 +117,12 @@ export class ProcessKernel extends EventEmitter {
 
   /**
    * Execute code; resolves with { status, outputs, executionCount }.
-   * Never rejects — kernel failures come back as error outputs so the UI
-   * has one rendering path.
+   * Stream output produced during execution is delivered incrementally via
+   * `onStream({ name, text })`; the final outputs contain only results and
+   * errors. Never rejects — kernel failures come back as error outputs so
+   * the UI has one rendering path.
    */
-  execute(code) {
+  execute(code, { onStream } = {}) {
     if (!this.process) this.start();
     if (!this.process || this.status === 'dead') {
       return Promise.resolve({
@@ -120,7 +138,7 @@ export class ProcessKernel extends EventEmitter {
     }
     const id = this.nextId++;
     return new Promise((resolve) => {
-      this.pending.set(id, { resolve });
+      this.pending.set(id, { resolve, onStream });
       if (this.status !== 'busy') {
         this.status = 'busy';
         this.emit('status-changed', this.status);

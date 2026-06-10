@@ -50,17 +50,40 @@
 
 ## Kernel protocol
 
-One request, one response, correlated by `id`:
+Messages are JSON lines, correlated by `id`. While a cell runs, the kernel
+streams output as it is produced; the final `result` carries only
+results/errors:
 
 ```jsonc
 // main → kernel
-{"id": 3, "type": "execute", "code": "x = 1\nx + 1"}
+{"id": 3, "type": "execute", "code": "print('hi')\nx + 1"}
 
-// kernel → main
+// kernel → main (zero or more, during execution)
+{"id": 3, "type": "stream", "name": "stdout", "text": "hi\n"}
+
+// kernel → main (exactly one)
 {"id": 3, "type": "result", "status": "ok",
  "outputs": [{"type": "execute_result", "text": "2"}],
  "executionCount": 3}
 ```
+
+While a cell runs, the kernel may also call back into the app — this powers
+the `notebook` automation object available to user code:
+
+```jsonc
+// kernel → main
+{"type": "api", "apiId": 1, "method": "insert_cell",
+ "args": {"source": "x = 1", "type": "code", "index": null}}
+
+// main → kernel
+{"type": "api-result", "apiId": 1, "value": {"index": 2, "id": "…"}, "error": null}
+```
+
+The main-process side of the API is `src/main/kernels/notebook-api.js`
+(methods: `cell_count`, `get_cells`, `get_source`, `set_source`,
+`insert_cell`, `delete_cell`; indices are 0-based). It is pure Node, so the
+full loop — user code in a real kernel mutating a real store — is covered by
+`test/notebook-api.test.js`.
 
 Output objects (mirroring nbformat):
 
@@ -110,13 +133,17 @@ structural change. A full re-render happens only on `notebook-replaced`
 
 `npm test` runs `node --test`:
 
-- `test/notebook-store.test.js` — state invariants and events
+- `test/notebook-store.test.js` — state invariants, events, streaming
+  output coalescing, undo/redo of structural operations
 - `test/ipynb.test.js` — parse/serialize, Jupyter-written sample,
   round-trips, error cases
 - `test/markdown.test.js` — rendering and escaping (including injection
   attempts)
+- `test/search.test.js` — find/replace logic shared with the find dialog
 - `test/kernels.test.js` — live child-process integration tests of both
   runners: persistence, streams, errors, interrupt, restart, stop
+- `test/notebook-api.test.js` — the in-kernel automation API, end to end
+  through real kernel processes against a real store
 
 CI (`.github/workflows/ci.yml`) runs the same suite on every push and PR.
 The Electron shell (`main.js`, menu, renderer) is deliberately thin; verify
