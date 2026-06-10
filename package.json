@@ -1,0 +1,22 @@
+{
+  "name": "accessible-computational-notebook",
+  "version": "0.2.0",
+  "description": "A screen-reader-first, keyboard-only computational notebook with persistent Python and JavaScript kernels",
+  "type": "module",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test"
+  },
+  "keywords": [
+    "notebook",
+    "accessibility",
+    "screen-reader",
+    "jupyter",
+    "electron"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^35.0.0"
+  }
+}

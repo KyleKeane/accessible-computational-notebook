@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>Accessible Computational Notebook</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Exactly two live regions for the whole app. -->
+  <div id="announcer-polite" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+  <div id="announcer-assertive" role="alert" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
+  <header id="toolbar" aria-label="Notebook toolbar">
+    <button id="btn-insert-code" type="button">Insert code cell</button>
+    <button id="btn-run" type="button">Run cell</button>
+    <button id="btn-run-all" type="button">Run all</button>
+    <label for="kernel-select">Kernel</label>
+    <select id="kernel-select"></select>
+  </header>
+
+  <main aria-label="Notebook">
+    <div id="cells"></div>
+  </main>
+
+  <footer aria-label="Status bar">
+    <span id="status-kernel">Kernel: stopped</span>
+    <span id="status-position"></span>
+    <span id="status-dirty"></span>
+  </footer>
+
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <h1 id="help-title">Keyboard shortcuts</h1>
+    <p>Every command is also available in the menu bar (press Alt or F10).</p>
+
+    <h2>Navigating</h2>
+    <dl>
+      <dt>Up / Down arrow</dt><dd>Previous / next cell (when the cell, not its editor, has focus)</dd>
+      <dt>Enter</dt><dd>Move from the cell into its editor</dd>
+      <dt>Escape</dt><dd>Leave the editor and focus the cell (screen reader users: leave focus/forms mode first)</dd>
+      <dt>F6</dt><dd>Cycle between toolbar, cells, and status bar</dd>
+      <dt>Ctrl+Shift+Home / End</dt><dd>First / last cell</dd>
+      <dt>Ctrl+Shift+I</dt><dd>Describe the current cell</dd>
+      <dt>Ctrl+Shift+O</dt><dd>Read the current cell's output</dd>
+      <dt>Ctrl+Shift+K</dt><dd>Announce kernel status</dd>
+    </dl>
+
+    <h2>Running</h2>
+    <dl>
+      <dt>Shift+Enter</dt><dd>Run cell and advance (creates a new cell at the end)</dd>
+      <dt>Ctrl+Enter</dt><dd>Run cell in place</dd>
+      <dt>Ctrl+Shift+Enter</dt><dd>Run all cells</dd>
+      <dt>Ctrl+.</dt><dd>Interrupt kernel</dd>
+      <dt>Ctrl+Shift+.</dt><dd>Restart kernel</dd>
+    </dl>
+
+    <h2>Editing cells</h2>
+    <dl>
+      <dt>Ctrl+Shift+B</dt><dd>Insert code cell below</dd>
+      <dt>Ctrl+Shift+A</dt><dd>Insert code cell above</dd>
+      <dt>Ctrl+Shift+M</dt><dd>Insert markdown cell below</dd>
+      <dt>Ctrl+Shift+D</dt><dd>Delete cell</dd>
+      <dt>Alt+Up / Alt+Down</dt><dd>Move cell up / down</dd>
+      <dt>Tab / Shift+Tab in an editor</dt><dd>Indent / unindent (press Escape first to move focus instead)</dd>
+    </dl>
+
+    <h2>Files</h2>
+    <dl>
+      <dt>Ctrl+N / Ctrl+O</dt><dd>New / open notebook (.ipynb)</dd>
+      <dt>Ctrl+S / Ctrl+Shift+S</dt><dd>Save / save as</dd>
+    </dl>
+
+    <form method="dialog">
+      <button type="submit">Close</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
