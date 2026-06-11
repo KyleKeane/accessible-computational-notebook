@@ -35,6 +35,7 @@ const FILE_FILTERS = [{ name: 'Jupyter notebooks', extensions: ['ipynb'] }];
 async function saveTo(target) {
   await fs.writeFile(target, serializeIpynb(store.getState()), 'utf8');
   filePath = target;
+  kernels.setWorkingDirectory(path.dirname(target));
   store.markClean();
   updateTitle();
   await clearRecovery();
@@ -184,6 +185,7 @@ export async function openNotebook() {
     const json = await fs.readFile(filePaths[0], 'utf8');
     store.load(parseIpynb(json));
     filePath = filePaths[0];
+    kernels.setWorkingDirectory(path.dirname(filePath));
     updateTitle();
     sendToRenderer(window, 'announce', {
       text: `Opened ${path.basename(filePaths[0])}, ${store.cellCount} cells`

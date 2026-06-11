@@ -84,6 +84,29 @@
     </div>
   </dialog>
 
+  <dialog id="variables-dialog" aria-labelledby="variables-title">
+    <h1 id="variables-title">Variables</h1>
+    <table>
+      <thead>
+        <tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Value</th></tr>
+      </thead>
+      <tbody id="variables-body"></tbody>
+    </table>
+    <button id="variables-close" type="button">Close</button>
+  </dialog>
+
+  <dialog id="completion-dialog" aria-labelledby="completion-title">
+    <h1 id="completion-title" class="sr-only">Completions</h1>
+    <label for="completion-list" class="sr-only">Choose a completion</label>
+    <select id="completion-list" size="10" aria-label="Completions, press Enter to insert"></select>
+  </dialog>
+
+  <dialog id="docs-dialog" aria-labelledby="docs-symbol">
+    <h1 id="docs-symbol"></h1>
+    <pre id="docs-text" tabindex="-1"></pre>
+    <button id="docs-close" type="button">Close</button>
+  </dialog>
+
   <dialog id="help-dialog" aria-labelledby="help-title">
     <h1 id="help-title">Keyboard shortcuts</h1>
     <p>Every command is also available in the menu bar (press Alt or F10).</p>
@@ -98,6 +121,9 @@
       <dt>Ctrl+Shift+I</dt><dd>Describe the current cell</dd>
       <dt>Ctrl+Shift+O</dt><dd>Read the current cell's output</dd>
       <dt>Ctrl+Shift+G</dt><dd>Add or edit a description for an image output</dd>
+      <dt>Ctrl+Space</dt><dd>Complete the name at the cursor (kernel-aware)</dd>
+      <dt>Ctrl+Shift+U</dt><dd>Describe the symbol at the cursor (signature and documentation)</dd>
+      <dt>Ctrl+Shift+W</dt><dd>List the kernel's variables with types and values</dd>
       <dt>Ctrl+Shift+K</dt><dd>Announce kernel status</dd>
       <dt>Ctrl+,</dt><dd>Settings (time limits, announcement length, autosave)</dd>
     </dl>

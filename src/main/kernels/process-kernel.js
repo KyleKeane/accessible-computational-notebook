@@ -19,7 +19,8 @@ export class ProcessKernel extends EventEmitter {
     super();
     this.spec = spec;
     this.process = null;
-    this.pending = new Map(); // id -> { resolve }
+    this.pending = new Map(); // execute id -> { resolve, onStream }
+    this.pendingRequests = new Map(); // request id -> resolve
     this.nextId = 1;
     this.status = 'stopped'; // stopped | starting | idle | busy | dead
   }
@@ -29,7 +30,8 @@ export class ProcessKernel extends EventEmitter {
     this.status = 'starting';
     const child = spawn(this.spec.command, this.spec.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, ...(this.spec.env ?? {}) }
+      env: { ...process.env, ...(this.spec.env ?? {}) },
+      cwd: this.spec.getCwd?.() ?? undefined
     });
     this.process = child;
 
@@ -87,6 +89,13 @@ export class ProcessKernel extends EventEmitter {
           );
         }
       });
+      return;
+    }
+    if (typeof message.type === 'string' && message.type.endsWith('-result') &&
+        this.pendingRequests.has(message.id)) {
+      const resolve = this.pendingRequests.get(message.id);
+      this.pendingRequests.delete(message.id);
+      resolve(message);
       return;
     }
     if (message.type === 'result' && this.pending.has(message.id)) {
@@ -175,6 +184,37 @@ export class ProcessKernel extends EventEmitter {
       }
       this.process.stdin.write(JSON.stringify({ id, type: 'execute', code }) + '\n');
     });
+  }
+
+  /**
+   * Ask the kernel something that isn't an execution: 'inspect',
+   * 'complete' (with { code, cursor }), or 'docs'. Resolves with the
+   * kernel's reply, or { error } if the kernel is unavailable or busy for
+   * longer than `timeoutMs`. Does not affect busy/idle status.
+   */
+  request(kind, payload = {}, timeoutMs = 10000) {
+    if (!this.process) this.start();
+    if (!this.process || this.status === 'dead') {
+      return Promise.resolve({ error: `${this.spec.displayName} kernel is not available` });
+    }
+    const id = this.nextId++;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        resolve({ error: 'The kernel is busy; try again when the current cell finishes' });
+      }, timeoutMs);
+      this.pendingRequests.set(id, (message) => {
+        clearTimeout(timer);
+        resolve(message);
+      });
+      this.process.stdin.write(JSON.stringify({ id, type: kind, ...payload }) + '\n');
+    });
+  }
+
+  /** Fire-and-forget message to the runner (e.g. chdir). */
+  notify(kind, payload = {}) {
+    if (!this.process) this.start();
+    this.process?.stdin.write(JSON.stringify({ type: kind, ...payload }) + '\n');
   }
 
   /** Interrupt the running cell (SIGINT). Works for the Python runner. */

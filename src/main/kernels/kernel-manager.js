@@ -39,6 +39,19 @@ export class KernelManager extends EventEmitter {
     super();
     this.specs = specs;
     this.kernels = new Map();
+    this.workingDirectory = null;
+  }
+
+  /** Kernels run in the notebook's directory so relative paths work. */
+  setWorkingDirectory(directory) {
+    this.workingDirectory = directory;
+    for (const kernel of this.kernels.values()) {
+      kernel.notify('chdir', { path: directory });
+    }
+  }
+
+  request(name, kind, payload) {
+    return this.get(name).request(kind, payload);
   }
 
   list() {
@@ -56,7 +69,9 @@ export class KernelManager extends EventEmitter {
         command: spec.command,
         args: spec.args,
         env: spec.env,
-        displayName: spec.displayName
+        displayName: spec.displayName,
+        // New and restarted kernels start in the notebook's directory.
+        getCwd: () => this.workingDirectory
       });
       kernel.on('status-changed', (status) => {
         this.emit('status-changed', { name, status });

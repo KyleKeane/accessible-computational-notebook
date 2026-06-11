@@ -129,6 +129,72 @@ def run_cell(code, exec_id):
     return "ok", []
 
 
+# ---------- kernel intelligence: inspect / complete / docs ----------
+
+def run_quiet(snippet):
+    """Run a snippet in the persisted session state and return stdout."""
+    script = f"""
+if [ -f {CWD_FILE!r} ]; then cd "$(cat {CWD_FILE!r})" 2>/dev/null; fi
+if [ -f {STATE_FILE!r} ]; then source {STATE_FILE!r} 2>/dev/null; fi
+{snippet}
+"""
+    try:
+        return subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True, text=True, errors="replace", timeout=5
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def inspect_variables():
+    import re
+    variables = []
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, errors="replace") as handle:
+            for line in handle:
+                # `declare -f` writes full definitions: "name () " then the body.
+                definition = re.match(r"^([A-Za-z_]\w*) \(\)\s*$", line)
+                if definition:
+                    variables.append({"name": definition.group(1), "type": "function", "preview": ""})
+                elif line.startswith("declare -"):
+                    parts = line.split(None, 2)
+                    if len(parts) == 3 and "=" in parts[2]:
+                        name, _, value = parts[2].partition("=")
+                        preview = value.strip()
+                        if len(preview) > 80:
+                            preview = preview[:77] + "..."
+                        variables.append({"name": name, "type": "variable", "preview": preview})
+    return sorted(variables, key=lambda v: v["name"])
+
+
+def word_before(code, cursor):
+    import re
+    match = re.search(r"[\w$./-]+$", code[:cursor])
+    return match.group(0) if match else ""
+
+
+def complete(code, cursor):
+    word = word_before(code, cursor)
+    if not word:
+        return {"matches": [], "replaceFrom": cursor}
+    if word.startswith("$"):
+        out = run_quiet(f"compgen -v -- {word[1:]!r}")
+        matches = sorted({"$" + m for m in out.split() if m})
+    else:
+        out = run_quiet(f"compgen -c -- {word!r}; compgen -f -- {word!r}")
+        matches = sorted({m for m in out.splitlines() if m})
+    return {"matches": matches[:200], "replaceFrom": cursor - len(word)}
+
+
+def docs_for(code, cursor):
+    word = word_before(code, cursor).lstrip("$")
+    if not word:
+        return {"symbol": "", "text": "No word at the cursor"}
+    out = run_quiet(f"type -- {word!r} 2>&1; help -d -- {word!r} 2>/dev/null")
+    return {"symbol": word, "text": out.strip() or f"{word}: not found"}
+
+
 def main():
     global execution_count
     while True:
@@ -145,7 +211,26 @@ def main():
             message = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if message.get("type") != "execute":
+        kind = message.get("type")
+        if kind == "chdir":
+            path = message.get("path", "")
+            if path and os.path.isdir(path):
+                with open(CWD_FILE, "w") as handle:
+                    handle.write(path)
+            continue
+        if kind == "inspect":
+            send({"id": message.get("id"), "type": "inspect-result",
+                  "variables": inspect_variables()})
+            continue
+        if kind == "complete":
+            send({"id": message.get("id"), "type": "complete-result",
+                  **complete(message.get("code", ""), message.get("cursor", 0))})
+            continue
+        if kind == "docs":
+            send({"id": message.get("id"), "type": "docs-result",
+                  **docs_for(message.get("code", ""), message.get("cursor", 0))})
+            continue
+        if kind != "execute":
             continue
         execution_count += 1
         status, outputs = run_cell(message.get("code", ""), message.get("id"))

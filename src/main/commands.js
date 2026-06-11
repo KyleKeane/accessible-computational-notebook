@@ -106,6 +106,29 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     await runMany(store.cells.slice(index).map((c) => c.id), 'from here down');
   }
 
+  async function listVariables() {
+    const reply = await kernels.request(store.metadata.kernelName, 'inspect');
+    if (reply.error) {
+      announce(reply.error, true);
+      return;
+    }
+    const variables = reply.variables ?? [];
+    if (variables.length === 0) {
+      announce('No variables defined yet');
+      return;
+    }
+    announce(`${variables.length} variable${variables.length === 1 ? '' : 's'}`);
+    sendToRenderer(getWindow(), 'show-variables', { variables });
+  }
+
+  function complete(code, cursor) {
+    return kernels.request(store.metadata.kernelName, 'complete', { code, cursor });
+  }
+
+  function symbolDocs(code, cursor) {
+    return kernels.request(store.metadata.kernelName, 'docs', { code, cursor });
+  }
+
   function setImageDescription(id, outputIndex, text) {
     store.setImageDescription(id ?? store.activeCellId, outputIndex, text);
     announce('Image description saved');
@@ -209,6 +232,9 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     runAll,
     runAllAbove,
     runAllBelow,
+    listVariables,
+    complete,
+    symbolDocs,
     setImageDescription,
     updateSettings,
     insertCell,

@@ -144,6 +144,111 @@ async function runCell(code) {
   return { status, outputs };
 }
 
+/* ---------- kernel intelligence: inspect / complete / docs ---------- */
+
+const INJECTED = new Set([
+  'console', 'notebook', 'require', 'setTimeout', 'setInterval', 'clearTimeout',
+  'clearInterval', 'queueMicrotask', 'URL', 'TextEncoder', 'TextDecoder',
+  'fetch', 'process', 'globalThis', '_'
+]);
+
+function preview(value) {
+  const text = util.inspect(value, { depth: 1, breakLength: Infinity });
+  return text.length > 80 ? text.slice(0, 77) + '...' : text;
+}
+
+// Top-level let/const/class persist across cells but live in the context's
+// lexical environment, which has no reflection API — so their names are
+// recorded as cells execute and resolved individually for the inspector.
+const lexicalNames = new Set();
+
+function recordLexicalNames(code) {
+  for (const match of code.matchAll(/(?:^|[\n;{])\s*(?:let|const|class)\s+([A-Za-z_$][\w$]*)/g)) {
+    lexicalNames.add(match[1]);
+  }
+}
+
+function describeVariable(name, value) {
+  const type = typeof value === 'object' && value !== null
+    ? value.constructor?.name ?? 'object'
+    : typeof value;
+  const lengthInfo = Array.isArray(value) ? `, length ${value.length}` : '';
+  return { name, type: type + lengthInfo, preview: preview(value) };
+}
+
+function inspectVariables() {
+  const seen = new Map();
+  for (const name of Object.keys(sandbox)) {
+    if (!INJECTED.has(name)) seen.set(name, describeVariable(name, sandbox[name]));
+  }
+  for (const name of lexicalNames) {
+    if (seen.has(name)) continue;
+    try {
+      seen.set(name, describeVariable(name, vm.runInContext(name, context)));
+    } catch {
+      // Recorded from a cell that failed or was inside a block; skip.
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function symbolBefore(code, cursor) {
+  const match = code.slice(0, cursor).match(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.?$/);
+  return match ? match[0] : '';
+}
+
+function propertyNames(object) {
+  const names = new Set();
+  let current = object;
+  while (current !== null && current !== undefined && names.size < 500) {
+    for (const name of Object.getOwnPropertyNames(current)) names.add(name);
+    current = Object.getPrototypeOf(current);
+  }
+  return [...names];
+}
+
+function complete(code, cursor) {
+  const symbol = symbolBefore(code, cursor);
+  let prefix = symbol;
+  let candidates;
+  if (symbol.includes('.')) {
+    const at = symbol.lastIndexOf('.');
+    prefix = symbol.slice(at + 1);
+    try {
+      const base = vm.runInContext(symbol.slice(0, at), context);
+      candidates = propertyNames(base);
+    } catch {
+      return { matches: [], replaceFrom: cursor };
+    }
+  } else {
+    candidates = [...Object.keys(sandbox), ...propertyNames(globalThis)];
+  }
+  const matches = [...new Set(candidates)]
+    .filter((c) => c.startsWith(prefix) && (prefix ? true : !c.startsWith('_')))
+    .sort();
+  return { matches: matches.slice(0, 200), replaceFrom: cursor - prefix.length };
+}
+
+function docsFor(code, cursor) {
+  const symbol = symbolBefore(code, cursor).replace(/\.$/, '');
+  if (!symbol) return { symbol: '', text: 'No symbol at the cursor' };
+  let value;
+  try {
+    value = vm.runInContext(symbol, context);
+  } catch {
+    return { symbol, text: `${symbol} is not defined` };
+  }
+  if (typeof value === 'function') {
+    const source = String(value);
+    const head = source.slice(0, source.indexOf('{')).trim() || source.slice(0, 120);
+    return { symbol, text: `${head}\n\n(function, ${value.length} declared parameter${value.length === 1 ? '' : 's'})` };
+  }
+  const type = typeof value === 'object' && value !== null
+    ? value.constructor?.name ?? 'object'
+    : typeof value;
+  return { symbol, text: `${symbol}: ${type} = ${preview(value)}` };
+}
+
 const rl = readline.createInterface({ input: process.stdin, terminal: false });
 let queue = Promise.resolve();
 
@@ -164,10 +269,31 @@ rl.on('line', (line) => {
     }
     return;
   }
+  if (message.type === 'chdir') {
+    try {
+      process.chdir(message.path ?? '.');
+    } catch {
+      // Missing directory: stay where we are.
+    }
+    return;
+  }
+  if (message.type === 'inspect') {
+    send({ id: message.id, type: 'inspect-result', variables: inspectVariables() });
+    return;
+  }
+  if (message.type === 'complete') {
+    send({ id: message.id, type: 'complete-result', ...complete(message.code ?? '', message.cursor ?? 0) });
+    return;
+  }
+  if (message.type === 'docs') {
+    send({ id: message.id, type: 'docs-result', ...docsFor(message.code ?? '', message.cursor ?? 0) });
+    return;
+  }
   if (message.type !== 'execute') return;
   queue = queue.then(async () => {
     executionCount += 1;
     currentExecuteId = message.id;
+    recordLexicalNames(message.code ?? '');
     const { status, outputs } = await runCell(message.code ?? '');
     send({
       id: message.id,

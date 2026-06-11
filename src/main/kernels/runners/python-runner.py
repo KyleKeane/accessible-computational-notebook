@@ -130,6 +130,93 @@ class NotebookAPI:
 
 namespace = {"__name__": "__main__", "notebook": NotebookAPI()}
 
+# ---------- kernel intelligence: inspect / complete / docs ----------
+
+HIDDEN_NAMES = {"notebook", "__name__", "__builtins__"}
+
+
+def describe_value(value):
+    type_name = type(value).__name__
+    extra = ""
+    try:
+        if hasattr(value, "shape"):
+            extra = f", shape {tuple(value.shape)}"
+        elif hasattr(value, "__len__") and not isinstance(value, type):
+            extra = f", length {len(value)}"
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        preview = repr(value)
+    except Exception:  # noqa: BLE001
+        preview = "<unrepresentable>"
+    if len(preview) > 80:
+        preview = preview[:77] + "..."
+    return type_name + extra, preview
+
+
+def inspect_variables():
+    import types
+    variables = []
+    for name in sorted(namespace):
+        if name.startswith("_") or name in HIDDEN_NAMES:
+            continue
+        value = namespace[name]
+        if isinstance(value, types.ModuleType):
+            variables.append({"name": name, "type": "module", "preview": getattr(value, "__name__", "")})
+            continue
+        type_info, preview = describe_value(value)
+        variables.append({"name": name, "type": type_info, "preview": preview})
+    return variables
+
+
+SYMBOL_RE = r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\.?$"
+
+
+def symbol_before(code, cursor):
+    import re
+    match = re.search(SYMBOL_RE, code[:cursor])
+    return match.group(0) if match else ""
+
+
+def complete(code, cursor):
+    import builtins
+    import keyword
+    symbol = symbol_before(code, cursor)
+    if "." in symbol:
+        base, _, prefix = symbol.rpartition(".")
+        try:
+            obj = eval(base, namespace)  # noqa: S307 - same model as Jupyter
+            candidates = dir(obj)
+        except Exception:  # noqa: BLE001
+            return {"matches": [], "replaceFrom": cursor}
+    else:
+        prefix = symbol
+        candidates = list(namespace) + dir(builtins) + keyword.kwlist
+    matches = sorted({c for c in candidates if c.startswith(prefix) and (prefix or not c.startswith("_"))})
+    return {"matches": matches[:200], "replaceFrom": cursor - len(prefix)}
+
+
+def docs_for(code, cursor):
+    import inspect as _inspect
+    symbol = symbol_before(code, cursor).rstrip(".")
+    if not symbol:
+        return {"symbol": "", "text": "No symbol at the cursor"}
+    try:
+        obj = eval(symbol, namespace)  # noqa: S307
+    except Exception:  # noqa: BLE001
+        return {"symbol": symbol, "text": f"{symbol} is not defined"}
+    parts = []
+    try:
+        parts.append(f"{symbol}{_inspect.signature(obj)}")
+    except (TypeError, ValueError):
+        type_info, preview = describe_value(obj)
+        parts.append(f"{symbol}: {type_info} = {preview}")
+    doc = _inspect.getdoc(obj)
+    if doc:
+        parts.append(doc)
+    return {"symbol": symbol, "text": "\n\n".join(parts)}
+
+
 
 def run_cell(code):
     outputs = []
@@ -178,7 +265,27 @@ def main():
             continue
         if message is None:
             break
-        if message.get("type") != "execute":
+        kind = message.get("type")
+        if kind == "chdir":
+            try:
+                import os
+                os.chdir(message.get("path", "."))
+            except OSError:
+                pass
+            continue
+        if kind == "inspect":
+            send({"id": message.get("id"), "type": "inspect-result",
+                  "variables": inspect_variables()})
+            continue
+        if kind == "complete":
+            result = complete(message.get("code", ""), message.get("cursor", 0))
+            send({"id": message.get("id"), "type": "complete-result", **result})
+            continue
+        if kind == "docs":
+            result = docs_for(message.get("code", ""), message.get("cursor", 0))
+            send({"id": message.get("id"), "type": "docs-result", **result})
+            continue
+        if kind != "execute":
             continue
         execution_count += 1
         current_execute_id = message.get("id")

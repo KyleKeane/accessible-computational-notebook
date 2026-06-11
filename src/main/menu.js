@@ -57,6 +57,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           label: 'Find and Replace…',
           accelerator: 'CmdOrCtrl+F',
           click: toRenderer('show-find')
+        },
+        {
+          label: 'Complete at Cursor',
+          accelerator: 'CmdOrCtrl+Space',
+          click: toRenderer('complete-at-cursor')
         }
       ]
     },
@@ -149,6 +154,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           label: 'Announce Kernel Status',
           accelerator: 'CmdOrCtrl+Shift+K',
           click: () => commands.kernelStatus()
+        },
+        {
+          label: 'List Variables…',
+          accelerator: 'CmdOrCtrl+Shift+W',
+          click: () => commands.listVariables()
         }
       ]
     },
@@ -169,6 +179,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           label: 'Add Image Description…',
           accelerator: 'CmdOrCtrl+Shift+G',
           click: toRenderer('describe-image')
+        },
+        {
+          label: 'Describe Symbol at Cursor',
+          accelerator: 'CmdOrCtrl+Shift+U',
+          click: toRenderer('describe-symbol')
         },
         { type: 'separator' },
         {

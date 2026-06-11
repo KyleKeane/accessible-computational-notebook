@@ -97,6 +97,12 @@ export function registerIpc({ store, kernels, getWindow, settings }) {
         return commands.runAllBelow();
       case 'set-image-description':
         return commands.setImageDescription(args.id, args.outputIndex, args.text);
+      case 'list-variables':
+        return commands.listVariables();
+      case 'complete':
+        return commands.complete(args.code, args.cursor);
+      case 'symbol-docs':
+        return commands.symbolDocs(args.code, args.cursor);
       case 'set-settings':
         return commands.updateSettings(args.values);
       default:
