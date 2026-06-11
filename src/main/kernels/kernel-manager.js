@@ -23,7 +23,15 @@ export const KERNEL_SPECS = {
     command: process.execPath, // Electron binary runs as Node with this flag
     args: ['--no-deprecation', path.join(runnersDir, 'js-runner.mjs')],
     env: { ELECTRON_RUN_AS_NODE: '1' }
-  }
+  },
+  // The bash runner needs POSIX process groups and bash itself.
+  ...(os.platform() !== 'win32' ? {
+    bash: {
+      displayName: 'Bash (shell)',
+      command: 'python3',
+      args: [path.join(runnersDir, 'bash-runner.py')]
+    }
+  } : {})
 };
 
 export class KernelManager extends EventEmitter {

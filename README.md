@@ -79,6 +79,10 @@ are available in the next, across runs, until you restart the kernel.
   `KeyboardInterrupt` on demand.
 - **JavaScript (Node.js)** — a persistent `node:vm` context in a child
   process, with `console` capture, awaited promises, and top-level `await`.
+- **Bash** (macOS/Linux) — each cell is a real `bash -c` run, with
+  variables, functions, and the working directory carried between cells via
+  explicit state snapshots; stdout/stderr stream live and non-zero exit
+  statuses are reported as errors.
 
 Output **streams into the cell as it is produced**, and a summary is
 announced when the cell finishes.

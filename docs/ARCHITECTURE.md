@@ -19,6 +19,7 @@
 │   process-kernel.js   child-process client for the JSON-lines protocol      │
 │   runners/js-runner.mjs        persistent node:vm context                   │
 │   runners/python-runner.py     persistent namespace, stdlib only            │
+│   runners/bash-runner.py       bash -c per cell + state snapshots (POSIX)   │
 └─────────────────────────────────────────────────────────────────────────────┘
                   ▲ preload.cjs: command(name, args) ⇅ onEvent(channel, payload)
 ┌──────────────────────────────── renderer ───────────────────────────────────┐

@@ -6,7 +6,8 @@
 
 const LANGUAGES = {
   python: { comment: '#', extension: '.py' },
-  javascript: { comment: '//', extension: '.js' }
+  javascript: { comment: '//', extension: '.js' },
+  bash: { comment: '#', extension: '.sh' }
 };
 
 export function scriptExtension(kernelName) {

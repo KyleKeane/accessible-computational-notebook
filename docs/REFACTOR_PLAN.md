@@ -236,6 +236,8 @@ ACCESSIBILITY); CI.
 - [ ] Optional syntax-aware editor (evaluate CodeMirror 6 accessibility;
   textarea remains the fallback). Requires npm dependencies — deliberate
   pause point.
+- [x] A third kernel — Bash — via the same runner contract (state snapshots
+  between cells, streamed output, structured exit-status errors; POSIX only).
 - [ ] Additional kernels (R, Julia) via the same runner contract.
 - [ ] Packaging with electron-builder; signed releases.
 

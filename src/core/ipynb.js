@@ -9,7 +9,8 @@
 
 const KERNELSPECS = {
   python: { name: 'python3', display_name: 'Python 3', language: 'python' },
-  javascript: { name: 'javascript', display_name: 'JavaScript (Node.js)', language: 'javascript' }
+  javascript: { name: 'javascript', display_name: 'JavaScript (Node.js)', language: 'javascript' },
+  bash: { name: 'bash', display_name: 'Bash (shell)', language: 'bash' }
 };
 
 /** nbformat stores text as either a string or a list of lines. */
@@ -106,7 +107,7 @@ export function parseIpynb(json) {
   }));
 
   const language = doc.metadata?.kernelspec?.language ?? doc.metadata?.language_info?.name;
-  const kernelName = language === 'javascript' ? 'javascript' : 'python';
+  const kernelName = ['javascript', 'bash'].includes(language) ? language : 'python';
 
   return { cells, metadata: { kernelName } };
 }
