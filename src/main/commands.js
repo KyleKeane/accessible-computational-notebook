@@ -5,23 +5,10 @@
  */
 
 import { sendToRenderer } from './ipc.js';
+import { outputSummary } from '../core/output-summary.js';
 
-function outputSummary(status, outputs, maxAnnounced = 160) {
-  if (status === 'error') {
-    const error = outputs.find((o) => o.type === 'error');
-    return error ? `${error.ename}: ${error.evalue}` : 'failed';
-  }
-  const text = outputs
-    .filter((o) => o.type === 'stream' || o.type === 'execute_result')
-    .map((o) => o.text)
-    .join('');
-  if (text.trim() === '') return 'no output';
-  const trimmed = text.replace(/\n$/, '');
-  const lines = trimmed.split('\n');
-  // Short outputs are spoken verbatim; long ones are summarized.
-  if (lines.length === 1 && trimmed.length <= maxAnnounced) return `output: ${trimmed}`;
-  return `${lines.length} lines of output. First line: ${lines[0]}`;
-}
+/** A blind user's progress indicator: periodic "still running" updates. */
+const STILL_RUNNING_INTERVAL_MS = 30000;
 
 export function createCommands({ store, kernels, getWindow, settings }) {
   const announce = (text, assertive = false) =>
@@ -47,6 +34,12 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     sendToRenderer(getWindow(), 'cell-execution-started', { id: cell.id });
     store.clearOutputs(cell.id);
 
+    const startedAt = Date.now();
+    const stillRunning = setInterval(() => {
+      const seconds = Math.round((Date.now() - startedAt) / 1000);
+      announce(`Cell ${position} still running, ${seconds} seconds`);
+    }, STILL_RUNNING_INTERVAL_MS);
+
     const { status, outputs, executionCount } = await kernels.execute(
       store.metadata.kernelName,
       cell.source,
@@ -61,6 +54,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
       }
     );
 
+    clearInterval(stillRunning);
     // The cell may have been deleted while the kernel was busy.
     if (!store.getCell(cell.id)) return;
     for (const output of outputs) store.appendOutput(cell.id, output);
