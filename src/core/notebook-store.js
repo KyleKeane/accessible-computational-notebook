@@ -50,7 +50,9 @@ export class NotebookStore extends EventEmitter {
       type: CELL_TYPES.includes(cell.type) ? cell.type : 'raw',
       source: cell.source ?? '',
       outputs: cell.outputs ?? [],
-      executionCount: cell.executionCount ?? null
+      executionCount: cell.executionCount ?? null,
+      nbMetadata: cell.nbMetadata ?? {},
+      attachments: cell.attachments
     }));
     this.metadata = { kernelName: 'python', ...metadata };
     if (this.cells.length === 0) {
@@ -86,7 +88,7 @@ export class NotebookStore extends EventEmitter {
   }
 
   #makeCell({ type = 'code', source = '' } = {}) {
-    return { id: randomUUID(), type, source, outputs: [], executionCount: null };
+    return { id: randomUUID(), type, source, outputs: [], executionCount: null, nbMetadata: {} };
   }
 
   #markDirty() {

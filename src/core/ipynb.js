@@ -103,13 +103,16 @@ export function parseIpynb(json) {
     outputs: cell.cell_type === 'code' && Array.isArray(cell.outputs)
       ? cell.outputs.map(outputFromNbformat)
       : [],
-    executionCount: cell.execution_count ?? null
+    executionCount: cell.execution_count ?? null,
+    // Carried through untouched so a load → save cycle is lossless.
+    nbMetadata: cell.metadata ?? {},
+    attachments: cell.attachments
   }));
 
   const language = doc.metadata?.kernelspec?.language ?? doc.metadata?.language_info?.name;
   const kernelName = ['javascript', 'bash'].includes(language) ? language : 'python';
 
-  return { cells, metadata: { kernelName } };
+  return { cells, metadata: { kernelName, raw: doc.metadata ?? {} } };
 }
 
 /** Serialize a NotebookStore state snapshot to an .ipynb JSON string. */
@@ -120,9 +123,10 @@ export function serializeIpynb(state) {
       const out = {
         id: cell.id,
         cell_type: cell.type,
-        metadata: {},
+        metadata: cell.nbMetadata ?? {},
         source: splitText(cell.source)
       };
+      if (cell.attachments) out.attachments = cell.attachments;
       if (cell.type === 'code') {
         out.execution_count = cell.executionCount;
         out.outputs = cell.outputs.map((o) => outputToNbformat(o, cell.executionCount));
@@ -130,6 +134,7 @@ export function serializeIpynb(state) {
       return out;
     }),
     metadata: {
+      ...(state.metadata.raw ?? {}),
       kernelspec: KERNELSPECS[kernelName],
       language_info: { name: KERNELSPECS[kernelName].language }
     },

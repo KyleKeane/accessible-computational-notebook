@@ -161,6 +161,61 @@ test('image descriptions persist into the saved .ipynb metadata', () => {
   assert.equal(reparsed.cells[3].outputs[0].raw.metadata.alt, 'A bar chart of monthly sales');
 });
 
+test('cell metadata, attachments, and notebook metadata are lossless', () => {
+  const doc = JSON.stringify({
+    cells: [
+      {
+        cell_type: 'code',
+        id: 'tagged',
+        execution_count: null,
+        metadata: { tags: ['important'], collapsed: true },
+        source: 'x = 1',
+        outputs: []
+      },
+      {
+        cell_type: 'markdown',
+        id: 'attached',
+        metadata: {},
+        source: '![img](attachment:pic.png)',
+        attachments: { 'pic.png': { 'image/png': 'aGk=' } }
+      }
+    ],
+    metadata: {
+      kernelspec: { name: 'python3', display_name: 'Python 3', language: 'python' },
+      authors: [{ name: 'Kyle' }],
+      custom: { anything: 1 }
+    },
+    nbformat: 4,
+    nbformat_minor: 5
+  });
+  const store = new NotebookStore();
+  store.load(parseIpynb(doc));
+  const out = JSON.parse(serializeIpynb(store.getState()));
+  assert.deepEqual(out.cells[0].metadata, { tags: ['important'], collapsed: true });
+  assert.deepEqual(out.cells[1].attachments, { 'pic.png': { 'image/png': 'aGk=' } });
+  assert.deepEqual(out.metadata.authors, [{ name: 'Kyle' }]);
+  assert.deepEqual(out.metadata.custom, { anything: 1 });
+  assert.equal(out.metadata.kernelspec.language, 'python');
+});
+
+test('older nbformat 4.x files (no cell ids, string sources) open fine', () => {
+  const doc = JSON.stringify({
+    cells: [
+      { cell_type: 'code', metadata: {}, execution_count: 1, source: 'print(1)\nprint(2)', outputs: [] },
+      { cell_type: 'markdown', metadata: {}, source: 'hello' }
+    ],
+    metadata: {},
+    nbformat: 4,
+    nbformat_minor: 2
+  });
+  const store = new NotebookStore();
+  store.load(parseIpynb(doc));
+  assert.equal(store.cellCount, 2);
+  assert.equal(store.cells[0].source, 'print(1)\nprint(2)');
+  assert.ok(store.cells[0].id); // ids are generated when missing
+  assert.equal(store.metadata.kernelName, 'python');
+});
+
 test('trailing newline in source survives a round-trip', () => {
   const store = new NotebookStore();
   store.updateSource(store.cells[0].id, 'x = 1\n');
