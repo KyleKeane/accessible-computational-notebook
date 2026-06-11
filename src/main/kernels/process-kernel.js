@@ -119,10 +119,12 @@ export class ProcessKernel extends EventEmitter {
    * Execute code; resolves with { status, outputs, executionCount }.
    * Stream output produced during execution is delivered incrementally via
    * `onStream({ name, text })`; the final outputs contain only results and
-   * errors. Never rejects — kernel failures come back as error outputs so
-   * the UI has one rendering path.
+   * errors. With `timeoutMs > 0` the cell is interrupted when the limit is
+   * reached (and the kernel restarted if the interrupt is ignored). Never
+   * rejects — kernel failures come back as error outputs so the UI has one
+   * rendering path.
    */
-  execute(code, { onStream } = {}) {
+  execute(code, { onStream, timeoutMs = 0 } = {}) {
     if (!this.process) this.start();
     if (!this.process || this.status === 'dead') {
       return Promise.resolve({
@@ -138,7 +140,35 @@ export class ProcessKernel extends EventEmitter {
     }
     const id = this.nextId++;
     return new Promise((resolve) => {
-      this.pending.set(id, { resolve, onStream });
+      let timer = null;
+      let graceTimer = null;
+      let timedOut = false;
+      const finish = (result) => {
+        clearTimeout(timer);
+        clearTimeout(graceTimer);
+        if (timedOut) {
+          const seconds = timeoutMs / 1000;
+          const message = `Execution exceeded the ${seconds} second limit and was stopped`;
+          result = {
+            ...result,
+            status: 'error',
+            outputs: [{ type: 'error', ename: 'TimeoutError', evalue: message, traceback: message }]
+          };
+        }
+        resolve(result);
+      };
+      this.pending.set(id, { resolve: finish, onStream });
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          timedOut = true;
+          this.interrupt();
+          // If the interrupt is ignored (or the runner can't honor SIGINT,
+          // like a busy JS loop on some platforms), restart as a last resort.
+          graceTimer = setTimeout(() => {
+            if (this.pending.has(id)) this.restart();
+          }, 3000);
+        }, timeoutMs);
+      }
       if (this.status !== 'busy') {
         this.status = 'busy';
         this.emit('status-changed', this.status);

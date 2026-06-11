@@ -5,7 +5,15 @@
  */
 
 import { renderMarkdown } from '../core/markdown.js';
+import { sanitizeHtml } from '../core/safe-html.js';
 import { announce } from './announcer.js';
+
+const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/gif'];
+
+/** nbformat data values are strings or line lists. */
+function joinData(value) {
+  return Array.isArray(value) ? value.join('') : value ?? '';
+}
 
 const cellsContainer = document.getElementById('cells');
 
@@ -137,27 +145,68 @@ export class NotebookView {
     const container = section.querySelector('.outputs');
     container.textContent = '';
     container.hidden = outputs.length === 0;
-    for (const output of outputs) {
-      const pre = document.createElement('pre');
-      switch (output.type) {
-        case 'stream':
-          pre.className = output.name === 'stderr' ? 'out-stderr' : 'out-stream';
-          pre.textContent = output.text;
-          break;
-        case 'execute_result':
-          pre.className = 'out-result';
-          pre.textContent = output.text;
-          break;
-        case 'error':
-          pre.className = 'out-error';
-          pre.textContent = output.traceback || `${output.ename}: ${output.evalue}`;
-          break;
-        default:
-          pre.className = 'out-unsupported';
-          pre.textContent = `[unsupported output: ${output.raw?.output_type ?? 'unknown'}]`;
-      }
-      container.appendChild(pre);
+    outputs.forEach((output, index) => {
+      container.appendChild(this.buildOutput(output, index));
+    });
+  }
+
+  buildOutput(output, index) {
+    const pre = document.createElement('pre');
+    switch (output.type) {
+      case 'stream':
+        pre.className = output.name === 'stderr' ? 'out-stderr' : 'out-stream';
+        pre.textContent = output.text;
+        return pre;
+      case 'execute_result':
+        pre.className = 'out-result';
+        pre.textContent = output.text;
+        return pre;
+      case 'error':
+        pre.className = 'out-error';
+        pre.textContent = output.traceback || `${output.ename}: ${output.evalue}`;
+        return pre;
+      default:
+        return this.buildRichOutput(output, index);
     }
+  }
+
+  /** Rich outputs from other tools (display_data etc.): images with the
+      alt-description flow, sanitized HTML (tables!), or plain text. */
+  buildRichOutput(output, index) {
+    const raw = output.raw ?? {};
+    const data = raw.data ?? {};
+
+    const imageMime = IMAGE_MIMES.find((mime) => data[mime]);
+    if (imageMime) {
+      const img = document.createElement('img');
+      img.className = 'out-image';
+      img.src = `data:${imageMime};base64,${joinData(data[imageMime]).replace(/\n/g, '')}`;
+      img.dataset.outputIndex = String(index);
+      const alt = raw.metadata?.alt;
+      img.dataset.hasAlt = alt ? 'true' : 'false';
+      img.alt = alt ||
+        'Image without a description. Press Control Shift G to add one.';
+      return img;
+    }
+
+    if (data['text/html']) {
+      const div = document.createElement('div');
+      div.className = 'out-html';
+      div.innerHTML = sanitizeHtml(joinData(data['text/html']));
+      return div;
+    }
+
+    if (data['text/plain']) {
+      const pre = document.createElement('pre');
+      pre.className = 'out-result';
+      pre.textContent = joinData(data['text/plain']);
+      return pre;
+    }
+
+    const fallback = document.createElement('pre');
+    fallback.className = 'out-unsupported';
+    fallback.textContent = `[unsupported output: ${raw.output_type ?? 'unknown'}]`;
+    return fallback;
   }
 
   setActive(id) {
@@ -216,6 +265,23 @@ export class NotebookView {
       return;
     }
     announce(outputs.textContent);
+  }
+
+  /** Open the description editor for the first image in the active cell. */
+  openImageDescription() {
+    const section = this.activeCellElement();
+    const img = section?.querySelector('img.out-image');
+    if (!img) {
+      announce('No image output in this cell');
+      return;
+    }
+    const dialog = document.getElementById('image-desc-dialog');
+    const textarea = document.getElementById('image-desc-text');
+    textarea.value = img.dataset.hasAlt === 'true' ? img.alt : '';
+    dialog.dataset.cellId = section.dataset.id;
+    dialog.dataset.outputIndex = img.dataset.outputIndex;
+    dialog.showModal();
+    textarea.focus();
   }
 
   /* ---------- event handlers from main ---------- */
@@ -318,6 +384,9 @@ export class NotebookView {
         break;
       case 'describe-cell':
         this.describeActiveCell();
+        break;
+      case 'describe-image':
+        this.openImageDescription();
         break;
       case 'read-output':
         this.readActiveOutput();

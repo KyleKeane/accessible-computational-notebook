@@ -35,7 +35,52 @@ api.onEvent((channel, payload) => {
     find.open();
     return;
   }
+  if (channel === 'show-settings') {
+    openSettings();
+    return;
+  }
   view.handleEvent(channel, payload);
+});
+
+/* ---------- settings dialog ---------- */
+
+async function openSettings() {
+  const { settings } = await api.getState();
+  document.getElementById('setting-timeout').value = settings.executionTimeoutSeconds;
+  document.getElementById('setting-announce-length').value = settings.maxAnnouncedOutputLength;
+  document.getElementById('setting-autosave').value = settings.autosaveIntervalSeconds;
+  const dialog = document.getElementById('settings-dialog');
+  dialog.showModal();
+  document.getElementById('setting-timeout').focus();
+}
+
+document.getElementById('settings-save').addEventListener('click', async () => {
+  await api.command('set-settings', {
+    values: {
+      executionTimeoutSeconds: Number(document.getElementById('setting-timeout').value),
+      maxAnnouncedOutputLength: Number(document.getElementById('setting-announce-length').value),
+      autosaveIntervalSeconds: Number(document.getElementById('setting-autosave').value)
+    }
+  });
+  document.getElementById('settings-dialog').close();
+});
+document.getElementById('settings-cancel').addEventListener('click', () => {
+  document.getElementById('settings-dialog').close();
+});
+
+/* ---------- image description dialog ---------- */
+
+document.getElementById('image-desc-save').addEventListener('click', async () => {
+  const dialog = document.getElementById('image-desc-dialog');
+  await api.command('set-image-description', {
+    id: dialog.dataset.cellId,
+    outputIndex: Number(dialog.dataset.outputIndex),
+    text: document.getElementById('image-desc-text').value.trim()
+  });
+  dialog.close();
+});
+document.getElementById('image-desc-cancel').addEventListener('click', () => {
+  document.getElementById('image-desc-dialog').close();
 });
 
 document.getElementById('btn-insert-code').addEventListener('click', () => {

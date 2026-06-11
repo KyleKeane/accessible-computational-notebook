@@ -26,8 +26,8 @@ const FORWARDED_STORE_EVENTS = [
   'dirty-changed'
 ];
 
-export function registerIpc({ store, kernels, getWindow }) {
-  const commands = createCommands({ store, kernels, getWindow });
+export function registerIpc({ store, kernels, getWindow, settings }) {
+  const commands = createCommands({ store, kernels, getWindow, settings });
 
   for (const event of FORWARDED_STORE_EVENTS) {
     store.on(event, (payload) => sendToRenderer(getWindow(), event, payload));
@@ -50,7 +50,8 @@ export function registerIpc({ store, kernels, getWindow }) {
   ipcMain.handle('notebook:get-state', () => ({
     ...store.getState(),
     kernels: kernels.list(),
-    kernelStatus: kernels.status(store.metadata.kernelName)
+    kernelStatus: kernels.status(store.metadata.kernelName),
+    settings: settings.values
   }));
 
   // Mutations initiated from the renderer (typing, focus, toolbar).
@@ -90,6 +91,14 @@ export function registerIpc({ store, kernels, getWindow }) {
         return commands.undoCellOperation();
       case 'redo-cell-operation':
         return commands.redoCellOperation();
+      case 'run-all-above':
+        return commands.runAllAbove();
+      case 'run-all-below':
+        return commands.runAllBelow();
+      case 'set-image-description':
+        return commands.setImageDescription(args.id, args.outputIndex, args.text);
+      case 'set-settings':
+        return commands.updateSettings(args.values);
       default:
         throw new Error(`Unknown command: ${name}`);
     }

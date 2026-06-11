@@ -190,6 +190,48 @@ test('a stopped kernel reports errors instead of hanging', async () => {
   assert.match(result.outputs[0].evalue, /stopped/);
 });
 
+test('timeout: a slow python cell is stopped and reported as TimeoutError', { skip: os.platform() === 'win32' }, async () => {
+  const kernel = pythonKernel();
+  try {
+    await kernel.execute('pass'); // ensure the kernel is warm
+    const result = await kernel.execute('import time\ntime.sleep(60)', { timeoutMs: 500 });
+    assert.equal(result.status, 'error');
+    assert.equal(result.outputs[0].ename, 'TimeoutError');
+    assert.match(result.outputs[0].evalue, /0\.5 second limit/);
+    // The session survives an interrupt-based timeout.
+    const after = await kernel.execute('"alive"');
+    assert.equal(textOf(after.outputs, 'execute_result'), "'alive'");
+  } finally {
+    kernel.stop();
+  }
+});
+
+test('timeout: a busy javascript loop is stopped; the kernel recovers', async () => {
+  const kernel = jsKernel();
+  try {
+    const result = await kernel.execute('while (true) {}', { timeoutMs: 500 });
+    assert.equal(result.status, 'error');
+    assert.equal(result.outputs[0].ename, 'TimeoutError');
+    // State is lost (the child was killed) but new executions work.
+    const after = await kernel.execute('1 + 1');
+    assert.equal(after.status, 'ok');
+    assert.equal(textOf(after.outputs, 'execute_result'), '2');
+  } finally {
+    kernel.stop();
+  }
+});
+
+test('timeout: fast cells are unaffected by a timeout setting', async () => {
+  const kernel = pythonKernel();
+  try {
+    const result = await kernel.execute('2 + 2', { timeoutMs: 10000 });
+    assert.equal(result.status, 'ok');
+    assert.equal(textOf(result.outputs, 'execute_result'), '4');
+  } finally {
+    kernel.stop();
+  }
+});
+
 test('python: SIGINT interrupts a running cell, session survives', { skip: os.platform() === 'win32' }, async () => {
   const kernel = pythonKernel();
   try {

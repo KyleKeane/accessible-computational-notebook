@@ -331,6 +331,28 @@ export class NotebookStore extends EventEmitter {
     this.#markDirty();
   }
 
+  /**
+   * Attach a description to an image output (stored in the output's
+   * nbformat metadata, so it persists in the .ipynb file).
+   */
+  setImageDescription(id, outputIndex, text) {
+    const cell = this.getCell(id);
+    if (!cell) throw new Error(`No such cell: ${id}`);
+    const output = cell.outputs[outputIndex];
+    if (!output) throw new Error(`No output ${outputIndex} in cell`);
+    if (output.type === 'passthrough') {
+      output.raw = { ...output.raw, metadata: { ...output.raw.metadata, alt: text } };
+    } else {
+      output.metadata = { ...output.metadata, alt: text };
+    }
+    this.#markDirty();
+    this.emit('cell-outputs-changed', {
+      id,
+      outputs: [...cell.outputs],
+      executionCount: cell.executionCount
+    });
+  }
+
   setActiveCell(id) {
     if (id !== null && !this.getCell(id)) return;
     if (this.activeCellId === id) return;

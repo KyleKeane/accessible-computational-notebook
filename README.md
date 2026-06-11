@@ -37,6 +37,13 @@ npm start
    reference card. `F1` shows the shortcut summary.
 4. `Ctrl+S` saves a standard Jupyter `.ipynb` file that opens in JupyterLab,
    VS Code, or anywhere else — and you can open notebooks from those tools.
+   Plots and tables in notebooks made elsewhere render too: tables as real
+   HTML tables (screen readers get row/column navigation), and images with
+   a description flow — press `Ctrl+Shift+G` to attach alt text that is
+   saved into the file for every future reader.
+5. `Ctrl+,` opens settings: per-cell execution time limit, how much output
+   is read aloud verbatim, and the autosave interval (unsaved work is
+   offered for recovery after a crash).
 
 ## The keyboard model
 

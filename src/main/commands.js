@@ -6,7 +6,7 @@
 
 import { sendToRenderer } from './ipc.js';
 
-function outputSummary(status, outputs) {
+function outputSummary(status, outputs, maxAnnounced = 160) {
   if (status === 'error') {
     const error = outputs.find((o) => o.type === 'error');
     return error ? `${error.ename}: ${error.evalue}` : 'failed';
@@ -19,11 +19,11 @@ function outputSummary(status, outputs) {
   const trimmed = text.replace(/\n$/, '');
   const lines = trimmed.split('\n');
   // Short outputs are spoken verbatim; long ones are summarized.
-  if (lines.length === 1 && trimmed.length <= 160) return `output: ${trimmed}`;
+  if (lines.length === 1 && trimmed.length <= maxAnnounced) return `output: ${trimmed}`;
   return `${lines.length} lines of output. First line: ${lines[0]}`;
 }
 
-export function createCommands({ store, kernels, getWindow }) {
+export function createCommands({ store, kernels, getWindow, settings }) {
   const announce = (text, assertive = false) =>
     sendToRenderer(getWindow(), 'announce', { text, assertive });
 
@@ -51,6 +51,7 @@ export function createCommands({ store, kernels, getWindow }) {
       store.metadata.kernelName,
       cell.source,
       {
+        timeoutMs: (settings?.values.executionTimeoutSeconds ?? 0) * 1000,
         // Stream output appears in the cell as it is produced.
         onStream: ({ name, text }) => {
           if (store.getCell(cell.id)) {
@@ -66,7 +67,8 @@ export function createCommands({ store, kernels, getWindow }) {
     store.setExecutionCount(cell.id, executionCount);
     sendToRenderer(getWindow(), 'cell-execution-finished', { id: cell.id, status });
     const allOutputs = store.getCell(cell.id).outputs;
-    announce(`Cell ${position} ${status === 'ok' ? 'done' : 'failed'}. ${outputSummary(status, allOutputs)}`, status === 'error');
+    const summary = outputSummary(status, allOutputs, settings?.values.maxAnnouncedOutputLength);
+    announce(`Cell ${position} ${status === 'ok' ? 'done' : 'failed'}. ${summary}`, status === 'error');
 
     if (advance && status === 'ok') advanceFrom(cell.id);
   }
@@ -81,13 +83,43 @@ export function createCommands({ store, kernels, getWindow }) {
     }
   }
 
-  async function runAll() {
-    announce(`Running all ${store.cellCount} cells`);
-    for (const id of store.cells.map((c) => c.id)) {
+  async function runMany(ids, what) {
+    if (ids.length === 0) {
+      announce(`No cells ${what}`);
+      return;
+    }
+    announce(`Running ${ids.length} cell${ids.length === 1 ? '' : 's'} ${what}`);
+    for (const id of ids) {
       if (!store.getCell(id)) continue;
       await runCell(id);
     }
-    announce('Finished running all cells');
+    announce(`Finished running cells ${what}`);
+  }
+
+  async function runAll() {
+    await runMany(store.cells.map((c) => c.id), 'in the notebook');
+  }
+
+  async function runAllAbove() {
+    const index = store.indexOf(store.activeCellId);
+    if (index === -1) return;
+    await runMany(store.cells.slice(0, index).map((c) => c.id), 'above');
+  }
+
+  async function runAllBelow() {
+    const index = store.indexOf(store.activeCellId);
+    if (index === -1) return;
+    await runMany(store.cells.slice(index).map((c) => c.id), 'from here down');
+  }
+
+  function setImageDescription(id, outputIndex, text) {
+    store.setImageDescription(id ?? store.activeCellId, outputIndex, text);
+    announce('Image description saved');
+  }
+
+  async function updateSettings(values) {
+    await settings.save(values);
+    announce('Settings saved');
   }
 
   function insertCell(type, position) {
@@ -181,6 +213,10 @@ export function createCommands({ store, kernels, getWindow }) {
   return {
     runCell,
     runAll,
+    runAllAbove,
+    runAllBelow,
+    setImageDescription,
+    updateSettings,
     insertCell,
     deleteCell,
     moveCell,

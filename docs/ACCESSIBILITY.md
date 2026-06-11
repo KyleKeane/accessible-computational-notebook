@@ -43,7 +43,16 @@ follows, the rationale, and what has and has not been tested.
    carries the filename and modified state, so a title read (e.g. NVDA+T)
    answers "where am I and is it saved".
 
-8. **Visuals follow system preferences.** `prefers-color-scheme`,
+8. **Images are never silent.** Image outputs (e.g. plots in notebooks made
+   with Jupyter) render with their description from the output metadata; if
+   there is none, the alt text says so and how to fix it. `Ctrl+Shift+G`
+   opens a description editor, and the description is **saved into the
+   `.ipynb` file**, so one person describing a plot helps every future
+   reader. HTML outputs are sanitized to a whitelist that keeps real
+   `<table>` semantics, giving screen readers row/column navigation of
+   data frames.
+
+9. **Visuals follow system preferences.** `prefers-color-scheme`,
    `prefers-reduced-motion`, and `forced-colors` are respected in CSS; the
    focus indicator is 3 px and never suppressed; text contrast meets WCAG AA.
 

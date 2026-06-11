@@ -123,6 +123,44 @@ test('multi-line sources round-trip through the line-list encoding', () => {
   assert.equal(reparsed.cells[0].source, source);
 });
 
+test('rich execute_result outputs (images) pass through losslessly', () => {
+  const doc = JSON.stringify({
+    cells: [{
+      cell_type: 'code',
+      id: 'r1',
+      execution_count: 1,
+      metadata: {},
+      source: 'plot()',
+      outputs: [{
+        output_type: 'execute_result',
+        execution_count: 1,
+        data: { 'text/plain': ['<Figure>'], 'image/png': 'aWcgZGF0YQ==' },
+        metadata: {}
+      }]
+    }],
+    nbformat: 4,
+    nbformat_minor: 5
+  });
+  const { cells } = parseIpynb(doc);
+  assert.equal(cells[0].outputs[0].type, 'passthrough');
+  const store = new NotebookStore();
+  store.load({ cells, metadata: {} });
+  const reparsed = parseIpynb(serializeIpynb(store.getState()));
+  assert.equal(reparsed.cells[0].outputs[0].raw.data['image/png'], 'aWcgZGF0YQ==');
+});
+
+test('image descriptions persist into the saved .ipynb metadata', () => {
+  const store = new NotebookStore();
+  store.load(parseIpynb(jupyterSample));
+  const imageCell = store.cells[3]; // the display_data cell
+  store.setImageDescription(imageCell.id, 0, 'A bar chart of monthly sales');
+  const doc = JSON.parse(serializeIpynb(store.getState()));
+  assert.equal(doc.cells[3].outputs[0].metadata.alt, 'A bar chart of monthly sales');
+  // …and it survives reopening.
+  const reparsed = parseIpynb(serializeIpynb(store.getState()));
+  assert.equal(reparsed.cells[3].outputs[0].raw.metadata.alt, 'A bar chart of monthly sales');
+});
+
 test('trailing newline in source survives a round-trip', () => {
   const store = new NotebookStore();
   store.updateSource(store.cells[0].id, 'x = 1\n');

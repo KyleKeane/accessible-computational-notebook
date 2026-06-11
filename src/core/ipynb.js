@@ -31,8 +31,15 @@ function outputFromNbformat(raw) {
   switch (raw.output_type) {
     case 'stream':
       return { type: 'stream', name: raw.name === 'stderr' ? 'stderr' : 'stdout', text: joinText(raw.text) };
-    case 'execute_result':
+    case 'execute_result': {
+      // Only flatten plain-text results; rich results (images, HTML) are
+      // passed through untouched so no data is lost on save.
+      const mimes = Object.keys(raw.data ?? {});
+      if (mimes.some((m) => m !== 'text/plain')) {
+        return { type: 'passthrough', raw };
+      }
       return { type: 'execute_result', text: joinText(raw.data?.['text/plain']) };
+    }
     case 'error':
       return {
         type: 'error',

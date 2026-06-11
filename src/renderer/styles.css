@@ -139,6 +139,22 @@ main {
 .out-result { font-weight: 600; }
 .out-unsupported { color: var(--muted); font-style: italic; }
 
+.out-image {
+  display: block;
+  max-width: 100%;
+  margin: 0.25rem 0;
+  border: 1px solid var(--border);
+}
+
+.out-html { overflow-x: auto; }
+.out-html table { border-collapse: collapse; margin: 0.25rem 0; }
+.out-html th, .out-html td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.6rem;
+  text-align: left;
+}
+.out-html th { background: var(--cell-bg); }
+
 .rendered-markdown {
   padding: 0.25rem 0.5rem;
 }

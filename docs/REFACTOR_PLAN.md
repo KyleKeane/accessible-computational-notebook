@@ -220,17 +220,24 @@ ACCESSIBILITY); CI.
   editor's native undo.
 - [x] Find / replace across cells (`Ctrl+F`, non-modal dialog, announced
   matches: "Match 2 of 7: cell 3, line 4").
-- [ ] Execution timeout policy / settings surface (interrupt and restart are
-  already in the Kernel menu).
+- [x] Execution timeout policy + settings surface (`Ctrl+,`): time limit per
+  cell (interrupt, then restart if ignored), announced-output length, and
+  autosave interval, persisted to the user-data directory.
 
-### Milestone 3 — rich content & distribution
+### Milestone 3 — rich content & distribution (in progress)
 
-- Rich outputs: images (with an alt-text prompt flow), HTML tables rendered as
-  real `<table>` so screen readers get row/column navigation.
-- Optional syntax-aware editor (evaluate CodeMirror 6 accessibility; textarea
-  remains the fallback).
-- Additional kernels (R, Julia) via the same runner contract.
-- Packaging with electron-builder; signed releases.
+- [x] Rich outputs: images from Jupyter notebooks render with an
+  **alt-description flow** (`Ctrl+Shift+G` attaches a description that is
+  announced in place of the image and saved into the `.ipynb` output
+  metadata); HTML outputs are whitelist-sanitized and tables render as real
+  `<table>` elements so screen readers get row/column navigation.
+- [x] Export as script (Jupytext "percent" format) for diffing and review.
+- [x] Autosave + crash recovery (offered on next launch).
+- [ ] Optional syntax-aware editor (evaluate CodeMirror 6 accessibility;
+  textarea remains the fallback). Requires npm dependencies — deliberate
+  pause point.
+- [ ] Additional kernels (R, Julia) via the same runner contract.
+- [ ] Packaging with electron-builder; signed releases.
 
 ### Milestone 4 — community
 

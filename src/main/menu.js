@@ -24,6 +24,9 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
         { type: 'separator' },
         { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => actions.saveNotebook() },
         { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => actions.saveNotebookAs() },
+        { label: 'Export as Script…', click: () => actions.exportScript() },
+        { type: 'separator' },
+        { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: toRenderer('show-settings') },
         { type: 'separator' },
         process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' }
       ]
@@ -75,6 +78,8 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           accelerator: 'CmdOrCtrl+Shift+Enter',
           click: () => commands.runAll()
         },
+        { label: 'Run All Above', click: () => commands.runAllAbove() },
+        { label: 'Run All Below', click: () => commands.runAllBelow() },
         { type: 'separator' },
         {
           label: 'Insert Code Cell Below',
@@ -159,6 +164,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           label: 'Read Current Cell Output',
           accelerator: 'CmdOrCtrl+Shift+O',
           click: toRenderer('read-output')
+        },
+        {
+          label: 'Add Image Description…',
+          accelerator: 'CmdOrCtrl+Shift+G',
+          click: toRenderer('describe-image')
         },
         { type: 'separator' },
         {
