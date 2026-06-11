@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { NotebookStore } from '../core/notebook-store.js';
 import { parseIpynb, serializeIpynb } from '../core/ipynb.js';
 import { toScript, scriptExtension } from '../core/export-script.js';
+import { toHtml } from '../core/export-html.js';
 import { KernelManager } from './kernels/kernel-manager.js';
 import { SettingsStore } from './settings.js';
 import { buildMenu } from './menu.js';
@@ -54,6 +55,18 @@ export async function exportScript() {
   });
   if (canceled || !target) return;
   await fs.writeFile(target, toScript(store.getState()), 'utf8');
+  sendToRenderer(window, 'announce', { text: `Exported ${path.basename(target)}` });
+}
+
+export async function exportHtml() {
+  const base = filePath ? path.basename(filePath, path.extname(filePath)) : 'notebook';
+  const { canceled, filePath: target } = await dialog.showSaveDialog(window, {
+    title: 'Export as HTML',
+    defaultPath: `${base}.html`,
+    filters: [{ name: 'HTML', extensions: ['html'] }]
+  });
+  if (canceled || !target) return;
+  await fs.writeFile(target, toHtml(store.getState(), base), 'utf8');
   sendToRenderer(window, 'announce', { text: `Exported ${path.basename(target)}` });
 }
 
@@ -240,7 +253,7 @@ app.whenReady().then(async () => {
     store,
     kernels,
     getWindow: () => window,
-    actions: { newNotebook, openNotebook, saveNotebook, saveNotebookAs, exportScript },
+    actions: { newNotebook, openNotebook, saveNotebook, saveNotebookAs, exportScript, exportHtml },
     commands
   };
   buildMenu(menuContext);

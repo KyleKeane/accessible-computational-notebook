@@ -25,6 +25,7 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
         { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => actions.saveNotebook() },
         { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => actions.saveNotebookAs() },
         { label: 'Export as Script…', click: () => actions.exportScript() },
+        { label: 'Export as HTML…', click: () => actions.exportHtml() },
         { type: 'separator' },
         { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: toRenderer('show-settings') },
         { type: 'separator' },
