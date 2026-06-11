@@ -17,6 +17,9 @@ export function setupKeyboard(view) {
     const target = event.target;
 
     if (event.key === 'F6') {
+      // Inside a modal dialog the rest of the page is inert; cycling would
+      // announce a focus move that cannot happen.
+      if (document.querySelector('dialog:modal')) return;
       event.preventDefault();
       cycleRegions(view, event.shiftKey);
       return;

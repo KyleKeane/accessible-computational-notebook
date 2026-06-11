@@ -47,6 +47,9 @@ export class NotebookView {
       cellsContainer.appendChild(this.buildCell(cell));
     }
     this.activeCellId = state.activeCellId;
+    for (const section of this.cellElements()) {
+      section.classList.toggle('active', section.dataset.id === this.activeCellId);
+    }
     this.relabel();
   }
 
@@ -55,6 +58,9 @@ export class NotebookView {
     section.className = 'cell';
     section.dataset.id = cell.id;
     section.dataset.type = cell.type;
+    if (cell.executionCount != null) {
+      section.dataset.executionCount = String(cell.executionCount);
+    }
     section.setAttribute('role', 'group');
     section.tabIndex = -1;
 
@@ -363,10 +369,13 @@ export class NotebookView {
       case 'cell-rendered': {
         const section = this.cellElement(payload.id);
         if (section) {
+          // Hiding a focused editor drops focus to <body>; capture before.
+          const hadFocus = section.contains(document.activeElement);
           this.renderTypeState(section, {
             type: section.dataset.type,
             source: section.querySelector('.editor').value
           });
+          if (hadFocus) this.focusCell(payload.id, true);
           if (section.dataset.type === 'markdown') announce('Markdown rendered');
         }
         break;
@@ -403,8 +412,11 @@ export class NotebookView {
         break;
       }
       case 'kernel-status-changed':
-        document.getElementById('status-kernel').textContent =
-          `Kernel: ${payload.status}`;
+        // Kernels persist per language; only show the selected one's status.
+        if (payload.name === document.getElementById('kernel-select').value) {
+          document.getElementById('status-kernel').textContent =
+            `Kernel: ${payload.status}`;
+        }
         break;
       case 'kernel-name-changed':
         document.getElementById('kernel-select').value = payload.kernelName;
