@@ -68,6 +68,11 @@ results/errors:
  "executionCount": 3}
 ```
 
+Beyond execution, kernels answer correlated requests (`inspect`, `complete`
+with `{code, cursor}`, `docs`) replying with `<kind>-result` messages, and
+accept fire-and-forget notifications (`chdir`). These power the variable
+inspector, completion, and symbol documentation in every kernel.
+
 While a cell runs, the kernel may also call back into the app — this powers
 the `notebook` automation object available to user code:
 

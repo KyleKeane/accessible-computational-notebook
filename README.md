@@ -62,6 +62,12 @@ Like Jupyter, a cell is either *selected* (focus on the cell itself) or
 | `Ctrl+Shift+D` | anywhere | delete cell |
 | `Alt+Up` / `Alt+Down` | anywhere | move cell up / down |
 | `Ctrl+Shift+I` / `Ctrl+Shift+O` | anywhere | describe cell / read its output |
+| `Ctrl+Space` | editor | complete the name at the cursor (kernel-aware) |
+| `Ctrl+Shift+U` | editor | signature + docs for the symbol at the cursor |
+| `Ctrl+Shift+W` | anywhere | list the kernel's variables with types and values |
+| `Ctrl+Shift+X` / `C` / `V` | anywhere | cut / copy / paste cell |
+| `Ctrl+Shift+J` | anywhere | go to section (markdown headings outline) |
+| `Ctrl+Shift+L` | anywhere | review announcement history |
 | `Ctrl+Alt+Z` / `Ctrl+Alt+Y` | anywhere | undo / redo cell operations |
 | `Ctrl+F` | anywhere | find and replace across cells |
 | `Ctrl+.` / `Ctrl+Shift+.` | anywhere | interrupt / restart kernel |
@@ -84,8 +90,14 @@ are available in the next, across runs, until you restart the kernel.
   explicit state snapshots; stdout/stderr stream live and non-zero exit
   statuses are reported as errors.
 
-Output **streams into the cell as it is produced**, and a summary is
-announced when the cell finishes.
+Output **streams into the cell as it is produced**, a summary is announced
+when the cell finishes, and long runs announce "still running" progress
+every 30 seconds.
+
+All kernels answer **exploration requests** too: variable inspection
+(`Ctrl+Shift+W`), name completion (`Ctrl+Space`), and symbol documentation
+(`Ctrl+Shift+U`) — and they run in the notebook file's directory, so
+relative paths in cells just work.
 
 Each kernel is a plain child process speaking a small JSON-lines protocol, so
 adding a language means writing one runner script — see

@@ -130,6 +130,7 @@ async function offerRecovery() {
     if (response === 0) {
       store.load(parsed);
       filePath = meta.filePath ?? null;
+      if (filePath) kernels.setWorkingDirectory(path.dirname(filePath));
       store.emit('dirty-changed', (store.dirty = true));
       updateTitle();
       sendToRenderer(window, 'announce', { text: 'Recovered unsaved work' });

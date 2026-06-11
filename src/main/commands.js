@@ -17,7 +17,26 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   const focusCell = (id, edit = false) =>
     sendToRenderer(getWindow(), 'focus-cell', { id, edit });
 
-  async function runCell(id, { advance = false } = {}) {
+  // Menu accelerators bypass <dialog> inertness; while a modal dialog is
+  // open, mutating the notebook invisibly behind it would be silent chaos.
+  let modalOpen = false;
+
+  function setUiState({ modalOpen: open }) {
+    modalOpen = Boolean(open);
+  }
+
+  function blockedByDialog() {
+    if (!modalOpen) return false;
+    announce('Close the open dialog first');
+    return true;
+  }
+
+  async function runCell(id, options = {}) {
+    if (blockedByDialog()) return;
+    return runCellInternal(id, options);
+  }
+
+  async function runCellInternal(id, { advance = false } = {}) {
     const cell = store.getCell(id ?? store.activeCellId);
     if (!cell) return;
 
@@ -78,6 +97,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   async function runMany(ids, what) {
+    if (blockedByDialog()) return;
     if (ids.length === 0) {
       announce(`No cells ${what}`);
       return;
@@ -85,7 +105,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     announce(`Running ${ids.length} cell${ids.length === 1 ? '' : 's'} ${what}`);
     for (const id of ids) {
       if (!store.getCell(id)) continue;
-      await runCell(id);
+      await runCellInternal(id);
     }
     announce(`Finished running cells ${what}`);
   }
@@ -140,6 +160,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function insertCell(type, position) {
+    if (blockedByDialog()) return;
     const cell = store.insertCell({
       type,
       relativeTo: store.activeCellId,
@@ -151,6 +172,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function deleteCell() {
+    if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
     const index = store.indexOf(id);
@@ -163,6 +185,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function moveCell(direction) {
+    if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
     if (store.moveCell(id, direction)) {
@@ -185,6 +208,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function cutCell() {
+    if (blockedByDialog()) return;
     const cell = store.getCell(store.activeCellId);
     if (!cell) return;
     if (store.cellCount === 1) {
@@ -196,6 +220,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function pasteCell() {
+    if (blockedByDialog()) return;
     if (!cellClipboard) {
       announce('Nothing to paste; cut or copy a cell first');
       return;
@@ -210,6 +235,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function setCellType(type) {
+    if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
     store.setCellType(id, type);
@@ -240,18 +266,21 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function undoCellOperation() {
+    if (blockedByDialog()) return;
     const label = store.undo();
     announce(label ? `Undid ${label}` : 'Nothing to undo');
     if (label && store.activeCellId) focusCell(store.activeCellId);
   }
 
   function redoCellOperation() {
+    if (blockedByDialog()) return;
     const label = store.redo();
     announce(label ? `Redid ${label}` : 'Nothing to redo');
     if (label && store.activeCellId) focusCell(store.activeCellId);
   }
 
   function clearOutputs() {
+    if (blockedByDialog()) return;
     if (store.activeCellId) {
       store.clearOutputs(store.activeCellId);
       announce('Output cleared');
@@ -259,6 +288,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
   }
 
   function clearAllOutputs() {
+    if (blockedByDialog()) return;
     store.clearAllOutputs();
     announce('All outputs cleared');
   }
@@ -288,6 +318,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     clearAllOutputs,
     undoCellOperation,
     redoCellOperation,
+    setUiState,
     announce
   };
 }

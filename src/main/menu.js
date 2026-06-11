@@ -60,8 +60,9 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           click: toRenderer('show-find')
         },
         {
+          // Plain Ctrl on every platform: Cmd+Space is macOS Spotlight.
           label: 'Complete at Cursor',
-          accelerator: 'CmdOrCtrl+Space',
+          accelerator: 'Ctrl+Space',
           click: toRenderer('complete-at-cursor')
         }
       ]

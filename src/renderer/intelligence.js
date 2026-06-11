@@ -60,7 +60,15 @@ export function setupIntelligence(api, view) {
       return;
     }
     const cursor = editor.selectionStart;
-    const reply = await api.command('complete', { code: editor.value, cursor });
+    const snapshot = editor.value;
+    const reply = await api.command('complete', { code: snapshot, cursor });
+    // The kernel may answer seconds later (e.g. while a cell is running);
+    // if the text or caret moved meanwhile, the offsets are stale and
+    // inserting would corrupt the cell.
+    if (editor.value !== snapshot || editor.selectionStart !== cursor || !editor.isConnected) {
+      announce('Text changed; completion canceled');
+      return;
+    }
     if (reply.error) {
       announce(reply.error, true);
       return;
@@ -92,7 +100,7 @@ export function setupIntelligence(api, view) {
   function acceptCompletion() {
     const choice = completionList.value;
     completionDialog.close();
-    if (choice && target) {
+    if (choice && target && target.editor.isConnected) {
       insertCompletion(target.editor, choice, target.replaceFrom, target.replaceTo);
     }
     target = null;

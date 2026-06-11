@@ -31,6 +31,7 @@
   </footer>
 
   <dialog id="find-dialog" aria-labelledby="find-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="find-title">Find and replace</h1>
     <p class="dialog-hint">Searches all cells. Enter finds the next match and moves focus to it; the dialog stays open.</p>
     <div class="find-row">
@@ -54,6 +55,7 @@
   </dialog>
 
   <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="settings-title">Settings</h1>
     <div class="find-row">
       <label for="setting-timeout">Execution time limit in seconds (0 for no limit)</label>
@@ -74,6 +76,7 @@
   </dialog>
 
   <dialog id="image-desc-dialog" aria-labelledby="image-desc-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="image-desc-title">Image description</h1>
     <p class="dialog-hint">Describe what this image shows. The description is announced in place of the image and is saved into the notebook file.</p>
     <label for="image-desc-text">Description</label><br>
@@ -85,6 +88,7 @@
   </dialog>
 
   <dialog id="variables-dialog" aria-labelledby="variables-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="variables-title">Variables</h1>
     <table>
       <thead>
@@ -96,24 +100,28 @@
   </dialog>
 
   <dialog id="completion-dialog" aria-labelledby="completion-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="completion-title" class="sr-only">Completions</h1>
     <label for="completion-list" class="sr-only">Choose a completion</label>
     <select id="completion-list" size="10" aria-label="Completions, press Enter to insert"></select>
   </dialog>
 
   <dialog id="docs-dialog" aria-labelledby="docs-symbol">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="docs-symbol"></h1>
     <pre id="docs-text" tabindex="-1"></pre>
     <button id="docs-close" type="button">Close</button>
   </dialog>
 
   <dialog id="outline-dialog" aria-labelledby="outline-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="outline-title">Go to section</h1>
     <label for="outline-list" class="sr-only">Choose a section, press Enter to go</label>
     <select id="outline-list" size="12" aria-label="Sections, press Enter to go"></select>
   </dialog>
 
   <dialog id="history-dialog" aria-labelledby="history-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="history-title">Announcement history</h1>
     <p class="dialog-hint">The most recent 100 announcements, newest first.</p>
     <ol id="history-list"></ol>
@@ -121,6 +129,7 @@
   </dialog>
 
   <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="help-title">Keyboard shortcuts</h1>
     <p>Every command is also available in the menu bar (press Alt or F10).</p>
 

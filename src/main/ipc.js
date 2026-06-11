@@ -63,6 +63,8 @@ export function registerIpc({ store, kernels, getWindow, settings }) {
       case 'set-active-cell':
         store.setActiveCell(args.id);
         return;
+      case 'set-ui-state':
+        return commands.setUiState(args);
       case 'run-cell':
         return commands.runCell(args.id, { advance: args.advance ?? false });
       case 'run-all':

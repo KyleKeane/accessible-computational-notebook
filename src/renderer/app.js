@@ -102,5 +102,14 @@ document.getElementById('kernel-select').addEventListener('change', (event) => {
   api.command('set-kernel', { kernelName: event.target.value });
 });
 
+// Menu accelerators bypass <dialog> inertness, so main must know when a
+// modal is open to refuse cell-mutating commands.
+const dialogObserver = new MutationObserver(() => {
+  api.command('set-ui-state', { modalOpen: !!document.querySelector('dialog:modal') });
+});
+for (const dialog of document.querySelectorAll('dialog')) {
+  dialogObserver.observe(dialog, { attributes: true, attributeFilter: ['open'] });
+}
+
 setupKeyboard(view);
 refresh();

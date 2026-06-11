@@ -11,7 +11,10 @@ const assertive = document.getElementById('announcer-assertive');
 const history = [];
 
 export function announce(text, isAssertive = false) {
-  const region = isAssertive ? assertive : polite;
+  // A modal <dialog> makes the rest of the page inert, which silences the
+  // main live regions; each dialog carries its own announcer for that case.
+  const modalRegion = document.querySelector('dialog:modal .dialog-announcer');
+  const region = modalRegion ?? (isAssertive ? assertive : polite);
   // Live regions only speak on a DOM change, so re-announcing identical
   // text needs a mutation; toggling a trailing space against the region's
   // CURRENT content guarantees every call mutates (comparing against

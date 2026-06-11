@@ -232,7 +232,16 @@ ACCESSIBILITY); CI.
   metadata); HTML outputs are whitelist-sanitized and tables render as real
   `<table>` elements so screen readers get row/column navigation.
 - [x] Export as script (Jupytext "percent" format) for diffing and review.
+- [x] Export as standalone accessible HTML (alt text, real tables, and
+  semantic headings travel with the document).
 - [x] Autosave + crash recovery (offered on next launch).
+- [x] Kernel intelligence in every kernel via three protocol requests:
+  variable inspector (`Ctrl+Shift+W`), kernel-aware completion
+  (`Ctrl+Space`), symbol documentation (`Ctrl+Shift+U`); kernels run in
+  the notebook file's directory.
+- [x] Structure and review tools: cell cut/copy/paste, Go to Section
+  outline (`Ctrl+Shift+J`), announcement history (`Ctrl+Shift+L`),
+  "still running" progress announcements every 30 s.
 - [ ] Optional syntax-aware editor (evaluate CodeMirror 6 accessibility;
   textarea remains the fallback). Requires npm dependencies — deliberate
   pause point.
