@@ -71,6 +71,12 @@ export function registerIpc({ store, kernels, getWindow, settings }) {
         return commands.insertCell(args.type ?? 'code', args.position ?? 'below');
       case 'delete-cell':
         return commands.deleteCell();
+      case 'cut-cell':
+        return commands.cutCell();
+      case 'copy-cell':
+        return commands.copyCell();
+      case 'paste-cell':
+        return commands.pasteCell();
       case 'move-cell':
         return commands.moveCell(args.direction);
       case 'set-cell-type':

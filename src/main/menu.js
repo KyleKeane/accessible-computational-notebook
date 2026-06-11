@@ -126,6 +126,22 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           click: () => commands.deleteCell()
         },
         { type: 'separator' },
+        {
+          label: 'Cut Cell',
+          accelerator: 'CmdOrCtrl+Shift+X',
+          click: () => commands.cutCell()
+        },
+        {
+          label: 'Copy Cell',
+          accelerator: 'CmdOrCtrl+Shift+C',
+          click: () => commands.copyCell()
+        },
+        {
+          label: 'Paste Cell Below',
+          accelerator: 'CmdOrCtrl+Shift+V',
+          click: () => commands.pasteCell()
+        },
+        { type: 'separator' },
         { label: 'Clear Cell Output', click: () => commands.clearOutputs() },
         { label: 'Clear All Outputs', click: () => commands.clearAllOutputs() }
       ]
@@ -186,6 +202,16 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           click: toRenderer('describe-symbol')
         },
         { type: 'separator' },
+        {
+          label: 'Go to Section…',
+          accelerator: 'CmdOrCtrl+Shift+J',
+          click: toRenderer('show-outline')
+        },
+        {
+          label: 'Announcement History…',
+          accelerator: 'CmdOrCtrl+Shift+L',
+          click: toRenderer('show-history')
+        },
         {
           label: 'First Cell',
           accelerator: 'CmdOrCtrl+Shift+Home',

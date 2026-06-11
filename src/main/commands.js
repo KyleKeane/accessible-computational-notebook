@@ -173,6 +173,42 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     }
   }
 
+  /* Cell clipboard: lives in the main process so it works regardless of
+     which surface (menu, future windows) triggers it. */
+  let cellClipboard = null;
+
+  function copyCell() {
+    const cell = store.getCell(store.activeCellId);
+    if (!cell) return;
+    cellClipboard = { type: cell.type, source: cell.source };
+    announce(`${cell.type} cell copied`);
+  }
+
+  function cutCell() {
+    const cell = store.getCell(store.activeCellId);
+    if (!cell) return;
+    if (store.cellCount === 1) {
+      announce('Cannot cut the only cell');
+      return;
+    }
+    cellClipboard = { type: cell.type, source: cell.source };
+    deleteCell();
+  }
+
+  function pasteCell() {
+    if (!cellClipboard) {
+      announce('Nothing to paste; cut or copy a cell first');
+      return;
+    }
+    const cell = store.insertCell({
+      ...cellClipboard,
+      relativeTo: store.activeCellId,
+      position: 'below'
+    });
+    announce(`Cell pasted at position ${store.indexOf(cell.id) + 1} of ${store.cellCount}`);
+    focusCell(cell.id);
+  }
+
   function setCellType(type) {
     const id = store.activeCellId;
     if (!id) return;
@@ -239,6 +275,9 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     updateSettings,
     insertCell,
     deleteCell,
+    copyCell,
+    cutCell,
+    pasteCell,
     moveCell,
     setCellType,
     setKernel,

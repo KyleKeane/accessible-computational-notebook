@@ -6,11 +6,13 @@ import { NotebookView } from './view.js';
 import { setupKeyboard } from './keyboard.js';
 import { setupFind } from './find.js';
 import { setupIntelligence } from './intelligence.js';
+import { setupNavigation } from './navigation.js';
 
 const api = window.notebook;
 const view = new NotebookView(api);
 const find = setupFind(api, view);
 const intelligence = setupIntelligence(api, view);
+const navigation = setupNavigation(api, view);
 
 async function refresh() {
   const state = await api.getState();
@@ -42,6 +44,7 @@ api.onEvent((channel, payload) => {
     return;
   }
   if (intelligence.handleEvent(channel, payload)) return;
+  if (navigation.handleEvent(channel, payload)) return;
   view.handleEvent(channel, payload);
 });
 
