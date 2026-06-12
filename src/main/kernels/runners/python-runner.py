@@ -223,6 +223,13 @@ def docs_for(code, cursor):
 def run_cell(code, exec_count=None):
     outputs = []
     status = "ok"
+    # Wolfram-style information escape: a cell of just "?symbol" answers
+    # with the symbol's signature and documentation.
+    stripped = code.strip()
+    if stripped.startswith("?") and "\n" not in stripped:
+        symbol = stripped.lstrip("?").strip()
+        result = docs_for(symbol, len(symbol))
+        return "ok", [{"type": "execute_result", "text": result["text"]}]
     try:
         tree = ast.parse(code, "<cell>", "exec")
         trailing_expr = None

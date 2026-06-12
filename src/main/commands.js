@@ -325,6 +325,22 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     announce(`Selection: ${summary}`, status === 'error');
   }
 
+  function toggleInitCell() {
+    if (blockedByDialog()) return;
+    const cell = store.getCell(store.activeCellId);
+    if (!cell) return;
+    if (cell.type !== 'code') {
+      announce('Only code cells can be initialization cells');
+      return;
+    }
+    const init = store.toggleInitCell(cell.id);
+    announce(init ? 'Initialization cell' : 'No longer an initialization cell');
+  }
+
+  async function runInitCells() {
+    await runMany(store.initCellIds(), 'marked initialization');
+  }
+
   /** Collapse or expand the section starting at the active heading cell. */
   function toggleSection() {
     if (blockedByDialog()) return;
@@ -445,6 +461,8 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     evaluateSnippet,
     describeNotebook,
     toggleSection,
+    toggleInitCell,
+    runInitCells,
     moveCell,
     setCellType,
     setKernel,

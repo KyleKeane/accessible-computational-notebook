@@ -192,6 +192,24 @@ test('javascript: Out[n] holds the result of execution n', async () => {
   }
 });
 
+test('?symbol cells answer with documentation in both kernels', async () => {
+  const py = pythonKernel();
+  const js = jsKernel();
+  try {
+    await py.execute('def area(w, h):\n    "Rectangle area."\n    return w * h');
+    const pyDocs = await py.execute('?area');
+    assert.equal(pyDocs.status, 'ok');
+    assert.match(textOf(pyDocs.outputs, 'execute_result'), /area\(w, h\)[\s\S]*Rectangle area\./);
+
+    await js.execute('function greet(who) { return "hi " + who }');
+    const jsDocs = await js.execute('?greet');
+    assert.match(textOf(jsDocs.outputs, 'execute_result'), /function greet\(who\)/);
+  } finally {
+    py.stop();
+    js.stop();
+  }
+});
+
 test('restart gives a fresh session', async () => {
   const kernel = pythonKernel();
   try {

@@ -115,6 +115,13 @@ function compileWithAwait(code) {
 async function runCell(code, execCount = null) {
   const outputs = [];
   let status = 'ok';
+  // Wolfram-style information escape: "?symbol" answers with docs.
+  const stripped = code.trim();
+  if (stripped.startsWith('?') && !stripped.includes('\n')) {
+    const symbol = stripped.replace(/^\?+/, '').trim();
+    const docs = docsFor(symbol, symbol.length);
+    return { status: 'ok', outputs: [{ type: 'execute_result', text: docs.text }] };
+  }
   try {
     let script;
     try {

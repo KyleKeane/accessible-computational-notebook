@@ -80,6 +80,9 @@ export class NotebookView {
     if (cell.nbMetadata?.heading_collapsed) {
       section.dataset.collapsed = 'true';
     }
+    if (cell.nbMetadata?.init_cell) {
+      section.dataset.init = 'true';
+    }
     section.setAttribute('role', 'group');
     section.tabIndex = -1;
 
@@ -153,7 +156,8 @@ export class NotebookView {
       const count = section.dataset.executionCount;
       const countText = count ? `, ran ${count}` : '';
       const collapsedText = section.dataset.collapsed === 'true' ? ', collapsed section' : '';
-      section.setAttribute('aria-label', `${type} cell ${position}${countText}${collapsedText}`);
+      const initText = section.dataset.init === 'true' ? ', initialization' : '';
+      section.setAttribute('aria-label', `${type} cell ${position}${countText}${initText}${collapsedText}`);
       section.querySelector('label').textContent = `${type} cell ${position} source`;
       section.querySelector('.outputs').setAttribute('aria-label', `Output of cell ${index + 1}`);
       section.querySelector('.cell-badge').textContent =
@@ -404,6 +408,15 @@ export class NotebookView {
         const section = this.cellElement(payload.id);
         section?.removeAttribute('aria-busy');
         section?.classList.remove('running');
+        break;
+      }
+      case 'cell-init-changed': {
+        const section = this.cellElement(payload.id);
+        if (section) {
+          if (payload.init) section.dataset.init = 'true';
+          else delete section.dataset.init;
+          this.relabel();
+        }
         break;
       }
       case 'cell-collapse-changed': {
