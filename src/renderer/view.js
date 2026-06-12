@@ -246,8 +246,20 @@ export class NotebookView {
   }
 
   focusCell(id, edit = false) {
-    const section = this.cellElement(id);
+    let section = this.cellElement(id);
     if (!section) return;
+    // Hidden elements silently refuse focus; land on the nearest visible
+    // neighbour instead of leaving the user stranded on <body>.
+    if (section.hidden) {
+      const cells = this.cellElements();
+      const index = cells.indexOf(section);
+      section =
+        cells.slice(index + 1).find((s) => !s.hidden) ??
+        cells.slice(0, index).reverse().find((s) => !s.hidden);
+      if (!section) return;
+      id = section.dataset.id;
+      edit = false;
+    }
     this.setActive(id);
     if (edit) {
       const editor = section.querySelector('.editor');
@@ -317,7 +329,7 @@ export class NotebookView {
       case 'cell-inserted': {
         const next = this.cellElements()[payload.index] ?? null;
         cellsContainer.insertBefore(this.buildCell(payload.cell), next);
-        this.relabel();
+        this.applyCollapse();
         break;
       }
       case 'cell-deleted': {
@@ -325,15 +337,23 @@ export class NotebookView {
         if (this.activeCellId === payload.id) {
           this.activeCellId = payload.nextActiveId;
         }
-        this.relabel();
+        this.applyCollapse();
         break;
       }
       case 'cell-source-changed': {
-        const editor = this.cellElement(payload.id)?.querySelector('.editor');
+        const section = this.cellElement(payload.id);
+        const editor = section?.querySelector('.editor');
         // Don't clobber the user's in-progress typing with our own echo.
         if (editor && document.activeElement !== editor && editor.value !== payload.source) {
           editor.value = payload.source;
           editor.rows = Math.max(2, payload.source.split('\n').length);
+          // A visible rendered-markdown view must track the new source
+          // (split/merge/replace change sources out from under it).
+          if (!section.querySelector('.rendered-markdown').hidden) {
+            this.renderTypeState(section, { type: section.dataset.type, source: payload.source });
+          }
+          // Heading edits can change what a collapsed section covers.
+          if (section.dataset.type === 'markdown') this.applyCollapse();
         }
         break;
       }
@@ -347,7 +367,7 @@ export class NotebookView {
             type: payload.type,
             source: section.querySelector('.editor').value
           });
-          this.relabel();
+          this.applyCollapse();
         }
         break;
       }
@@ -357,7 +377,7 @@ export class NotebookView {
           section.remove();
           const next = this.cellElements()[payload.to] ?? null;
           cellsContainer.insertBefore(section, next);
-          this.relabel();
+          this.applyCollapse();
         }
         break;
       }
@@ -435,8 +455,7 @@ export class NotebookView {
         break;
       }
       case 'focus-last-cell': {
-        const elements = this.cellElements();
-        const last = elements[elements.length - 1];
+        const last = this.cellElements().reverse().find((s) => !s.hidden);
         if (last) this.focusCell(last.dataset.id);
         break;
       }

@@ -37,6 +37,15 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     return true;
   }
 
+  /** Structural operations on a collapsed heading expand it first (Jupyter
+      semantics) — otherwise cells get inserted into, deleted around, or
+      focused inside an invisible range. */
+  function expandIfCollapsedHeading(id) {
+    if (id && store.getCell(id)?.nbMetadata?.heading_collapsed) {
+      store.setCollapsed(id, false);
+    }
+  }
+
   async function runCell(id, options = {}) {
     if (blockedByDialog()) return;
     return runCellInternal(id, options);
@@ -67,10 +76,9 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
       announce(`Cell ${position} still running, ${seconds} seconds`);
     }, STILL_RUNNING_INTERVAL_MS);
 
-    const { status, outputs, executionCount } = await kernels.execute(
-      store.metadata.kernelName,
-      cell.source,
-      {
+    let result;
+    try {
+      result = await kernels.execute(store.metadata.kernelName, cell.source, {
         timeoutMs: (settings?.values.executionTimeoutSeconds ?? 0) * 1000,
         // Stream output appears in the cell as it is produced.
         onStream: ({ name, text }) => {
@@ -78,11 +86,19 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
             store.appendOutput(cell.id, { type: 'stream', name, text });
           }
         }
-      }
-    );
-
-    clearTimeout(runningTimer);
-    clearInterval(stillRunning);
+      });
+    } catch (error) {
+      // e.g. the notebook names a kernel this platform doesn't have.
+      result = {
+        status: 'error',
+        outputs: [{ type: 'error', ename: 'KernelError', evalue: error.message, traceback: error.message }],
+        executionCount: null
+      };
+    } finally {
+      clearTimeout(runningTimer);
+      clearInterval(stillRunning);
+    }
+    const { status, outputs, executionCount } = result;
     // The cell may have been deleted while the kernel was busy.
     if (!store.getCell(cell.id)) return;
     for (const output of outputs) store.appendOutput(cell.id, output);
@@ -96,6 +112,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
   }
 
   function advanceFrom(id) {
+    expandIfCollapsedHeading(id);
     const index = store.indexOf(id);
     if (index === store.cellCount - 1) {
       const cell = store.insertCell({ type: 'code', relativeTo: id, position: 'below' });
@@ -170,6 +187,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
 
   function insertCell(type, position) {
     if (blockedByDialog()) return;
+    if (position !== 'above') expandIfCollapsedHeading(store.activeCellId);
     const cell = store.insertCell({
       type,
       relativeTo: store.activeCellId,
@@ -185,6 +203,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
+    expandIfCollapsedHeading(id);
     if (!store.deleteCell(id)) {
       announce('Cannot delete the only cell');
       return;
@@ -198,6 +217,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
+    expandIfCollapsedHeading(id);
     if (store.moveCell(id, direction)) {
       // Re-focusing the same element is silent, so position matters here.
       announce(`Moved ${direction} to ${store.indexOf(id) + 1} of ${store.cellCount}`);
@@ -236,6 +256,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
       announce('Nothing to paste; cut or copy a cell first');
       return;
     }
+    expandIfCollapsedHeading(store.activeCellId);
     const cell = store.insertCell({
       ...cellClipboard,
       relativeTo: store.activeCellId,
@@ -249,6 +270,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     if (blockedByDialog()) return;
     const cellId = id ?? store.activeCellId;
     if (!store.getCell(cellId)) return;
+    expandIfCollapsedHeading(cellId);
     const newCell = store.splitCell(cellId, offset);
     announce('Cell split');
     focusCell(newCell.id, true);
@@ -258,6 +280,9 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
+    expandIfCollapsedHeading(id);
+    const index = store.indexOf(id);
+    if (store.cells[index + 1]) expandIfCollapsedHeading(store.cells[index + 1].id);
     const merged = store.mergeWithBelow(id);
     if (!merged) {
       announce('No cell below to merge with');
@@ -275,11 +300,17 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
       announce('Select some code first');
       return;
     }
-    const { status, outputs } = await kernels.execute(store.metadata.kernelName, code, {
-      timeoutMs: (settings?.values.executionTimeoutSeconds ?? 0) * 1000
-    });
-    const summary = outputSummary(status, outputs, settings?.values.maxAnnouncedOutputLength);
-    announce(`Selection: ${summary}`, status === 'error');
+    let result;
+    try {
+      result = await kernels.execute(store.metadata.kernelName, code, {
+        timeoutMs: (settings?.values.executionTimeoutSeconds ?? 0) * 1000
+      });
+    } catch (error) {
+      announce(error.message, true);
+      return;
+    }
+    const summary = outputSummary(result.status, result.outputs, settings?.values.maxAnnouncedOutputLength);
+    announce(`Selection: ${summary}`, result.status === 'error');
   }
 
   /** Collapse or expand the section starting at the active heading cell. */

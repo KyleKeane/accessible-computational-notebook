@@ -239,6 +239,12 @@ export class NotebookStore extends EventEmitter {
     cell.type = type;
     cell.outputs = [];
     cell.executionCount = null;
+    // A cell that is no longer markdown cannot head a collapsed section.
+    if (cell.nbMetadata?.heading_collapsed) {
+      cell.nbMetadata = { ...cell.nbMetadata };
+      delete cell.nbMetadata.heading_collapsed;
+      this.emit('cell-collapse-changed', { id, collapsed: false });
+    }
     this.#markDirty();
     this.emit('cell-type-changed', { id, type });
     this.#record({

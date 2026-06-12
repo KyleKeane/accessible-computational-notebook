@@ -5,6 +5,7 @@
  */
 
 import { findMatches, replaceAllInSource } from '../core/search.js';
+import { sectionRange } from '../core/outline.js';
 import { announce } from './announcer.js';
 
 export function setupFind(api, view) {
@@ -59,7 +60,17 @@ export function setupFind(api, view) {
     const match = matches[nextIndex];
     current = { cellId: match.cellId, start: match.start, end: match.end };
 
+    // A match inside a collapsed section expands every section covering it,
+    // otherwise focusing the (hidden) editor would silently fail.
+    for (const heading of state.cells.filter((c) => c.nbMetadata?.heading_collapsed)) {
+      const range = sectionRange(state.cells, heading.id);
+      if (range && match.cellIndex >= range.startIndex && match.cellIndex < range.endIndex) {
+        await api.command('set-collapsed', { id: heading.id, collapsed: false });
+      }
+    }
+
     const section = view.cellElement(match.cellId);
+    if (section?.hidden) section.hidden = false;
     const editor = section?.querySelector('.editor');
     if (editor) {
       editor.hidden = false; // a rendered markdown cell goes back to source
