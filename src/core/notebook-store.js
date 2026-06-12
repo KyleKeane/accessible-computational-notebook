@@ -447,6 +447,28 @@ export class NotebookStore extends EventEmitter {
     return this.cells.filter((c) => c.nbMetadata?.heading_collapsed).map((c) => c.id);
   }
 
+  /**
+   * Toggle a code cell's initialization flag (Wolfram's InitializationCell;
+   * stored as Jupyter's init_cell metadata so it round-trips). Returns the
+   * new state.
+   */
+  toggleInitCell(id) {
+    const cell = this.getCell(id);
+    if (!cell) throw new Error(`No such cell: ${id}`);
+    const init = !cell.nbMetadata?.init_cell;
+    const nbMetadata = { ...cell.nbMetadata };
+    if (init) nbMetadata.init_cell = true;
+    else delete nbMetadata.init_cell;
+    cell.nbMetadata = nbMetadata;
+    this.#markDirty();
+    this.emit('cell-init-changed', { id, init });
+    return init;
+  }
+
+  initCellIds() {
+    return this.cells.filter((c) => c.type === 'code' && c.nbMetadata?.init_cell).map((c) => c.id);
+  }
+
   setActiveCell(id) {
     if (id !== null && !this.getCell(id)) return;
     if (this.activeCellId === id) return;

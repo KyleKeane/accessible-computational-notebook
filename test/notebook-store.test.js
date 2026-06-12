@@ -211,6 +211,17 @@ test('mergeWithBelow on the last cell returns null', () => {
   assert.equal(store.undo(), null);
 });
 
+test('toggleInitCell flips the flag and initCellIds lists code cells only', () => {
+  const store = new NotebookStore();
+  const a = store.cells[0];
+  assert.equal(store.toggleInitCell(a.id), true);
+  assert.equal(store.getCell(a.id).nbMetadata.init_cell, true);
+  assert.deepEqual(store.initCellIds(), [a.id]);
+  assert.equal(store.toggleInitCell(a.id), false);
+  assert.deepEqual(store.initCellIds(), []);
+  assert.equal('init_cell' in store.getCell(a.id).nbMetadata, false);
+});
+
 test('clearAllOutputs clears every cell', () => {
   const store = new NotebookStore();
   const a = store.cells[0];

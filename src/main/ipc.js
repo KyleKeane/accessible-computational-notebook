@@ -21,6 +21,7 @@ const FORWARDED_STORE_EVENTS = [
   'cell-type-changed',
   'cell-moved',
   'cell-collapse-changed',
+  'cell-init-changed',
   'cell-outputs-changed',
   'active-cell-changed',
   'kernel-name-changed',

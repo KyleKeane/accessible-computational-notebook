@@ -98,6 +98,7 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
         },
         { label: 'Run All Above', click: () => commands.runAllAbove() },
         { label: 'Run All Below', click: () => commands.runAllBelow() },
+        { label: 'Run Initialization Cells', click: () => commands.runInitCells() },
         { type: 'separator' },
         {
           label: 'Insert Code Cell Below',
@@ -131,6 +132,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
         {
           label: 'Merge with Cell Below',
           click: () => commands.mergeBelow()
+        },
+        {
+          label: 'Toggle Initialization Cell',
+          accelerator: 'CmdOrCtrl+Alt+I',
+          click: () => commands.toggleInitCell()
         },
         {
           label: 'Move Cell Up',
