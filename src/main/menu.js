@@ -26,6 +26,7 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
         { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => actions.saveNotebookAs() },
         { label: 'Export as Script…', click: () => actions.exportScript() },
         { label: 'Export as HTML…', click: () => actions.exportHtml() },
+        { label: 'Export Narrative as Text…', click: () => actions.exportNarrative() },
         { type: 'separator' },
         { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: toRenderer('show-settings') },
         { type: 'separator' },
@@ -232,6 +233,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           label: 'Collapse or Expand Section',
           accelerator: 'CmdOrCtrl+Shift+T',
           click: () => commands.toggleSection()
+        },
+        {
+          label: 'Read as Narrative…',
+          accelerator: 'CmdOrCtrl+Shift+E',
+          click: toRenderer('show-narrative')
         },
         {
           label: 'Announcement History…',

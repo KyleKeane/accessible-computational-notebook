@@ -4,6 +4,7 @@
  */
 
 import { extractOutline, sectionRange } from '../core/outline.js';
+import { cellsToNarrative } from '../core/narrative.js';
 import { announce, announcementHistory } from './announcer.js';
 
 export function setupNavigation(api, view) {
@@ -65,6 +66,55 @@ export function setupNavigation(api, view) {
   });
   outlineList.addEventListener('dblclick', goToSection);
 
+  /* ---------- notebook narrative ---------- */
+
+  async function showNarrative() {
+    const state = await api.getState();
+    const items = cellsToNarrative(state.cells);
+    const body = document.getElementById('narrative-body');
+    body.textContent = '';
+    if (items.length === 0) {
+      const p = document.createElement('p');
+      p.textContent = 'The notebook is empty.';
+      body.appendChild(p);
+    }
+    for (const item of items) {
+      let element;
+      switch (item.kind) {
+        case 'heading':
+          // The dialog title is the h1; notebook level 1 starts at h2.
+          element = document.createElement(`h${Math.min(item.level + 1, 6)}`);
+          element.textContent = item.text;
+          break;
+        case 'code':
+          element = document.createElement('pre');
+          element.className = 'narrative-code';
+          element.setAttribute(
+            'aria-label',
+            `Step ${item.index}, ${item.lineCount} line${item.lineCount === 1 ? '' : 's'} of code`
+          );
+          element.textContent = item.text;
+          break;
+        case 'output':
+          element = document.createElement('p');
+          element.className = 'narrative-output';
+          element.textContent = item.text;
+          break;
+        default:
+          element = document.createElement('p');
+          element.textContent = item.text;
+      }
+      body.appendChild(element);
+    }
+    document.getElementById('narrative-dialog').showModal();
+    body.focus();
+    announce(`Narrative, ${items.length} parts`);
+  }
+
+  document.getElementById('narrative-close').addEventListener('click', () => {
+    document.getElementById('narrative-dialog').close();
+  });
+
   /* ---------- announcement history ---------- */
 
   function showHistory() {
@@ -94,6 +144,9 @@ export function setupNavigation(api, view) {
       switch (channel) {
         case 'show-outline':
           showOutline();
+          return true;
+        case 'show-narrative':
+          showNarrative();
           return true;
         case 'show-history':
           showHistory();

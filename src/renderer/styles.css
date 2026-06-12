@@ -209,6 +209,15 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); }
 
 .find-row label { min-width: 7rem; }
 
+#narrative-dialog { max-width: 50rem; }
+#narrative-body { max-height: 60vh; overflow-y: auto; }
+.narrative-code {
+  background: var(--cell-bg);
+  border-left: 3px solid var(--border);
+  padding: 0.5rem;
+}
+.narrative-output { margin: 0.25rem 0 0.75rem 1rem; font-weight: 600; }
+
 .find-row input[type="text"] {
   font: inherit;
   color: var(--fg);

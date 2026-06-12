@@ -120,6 +120,14 @@
     <select id="outline-list" size="12" aria-label="Sections, press Enter to go"></select>
   </dialog>
 
+  <dialog id="narrative-dialog" aria-labelledby="narrative-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <h1 id="narrative-title">Notebook narrative</h1>
+    <p class="dialog-hint">The whole notebook as one readable story — prose, code steps, and results in order. Navigate by headings or arrow keys.</p>
+    <div id="narrative-body" tabindex="-1"></div>
+    <button id="narrative-close" type="button">Close</button>
+  </dialog>
+
   <dialog id="history-dialog" aria-labelledby="history-title">
     <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="history-title">Announcement history</h1>
@@ -142,6 +150,7 @@
       <dt>Ctrl+Shift+Home / End</dt><dd>First / last cell</dd>
       <dt>Ctrl+Shift+J</dt><dd>Go to a section (markdown headings outline)</dd>
       <dt>Ctrl+Shift+T</dt><dd>Collapse or expand the section at the current heading cell</dd>
+      <dt>Ctrl+Shift+E</dt><dd>Read the notebook as one narrative: prose, code steps, and results in order</dd>
       <dt>Ctrl+Shift+N</dt><dd>Describe the notebook (name, cells, sections, kernel)</dd>
       <dt>Ctrl+Shift+L</dt><dd>Review the announcement history</dd>
       <dt>F3</dt><dd>Repeat the last search</dd>

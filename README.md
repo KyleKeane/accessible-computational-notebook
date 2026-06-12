@@ -71,6 +71,7 @@ Like Jupyter, a cell is either *selected* (focus on the cell itself) or
 | `Ctrl+Shift+J` | anywhere | go to section (markdown headings outline) |
 | `Ctrl+Shift+T` | heading cell | collapse / expand the section (persisted in the file) |
 | `Ctrl+Shift+N` | anywhere | describe the notebook (name, cells, sections, kernel) |
+| `Ctrl+Shift+E` | anywhere | read the notebook as one narrative (prose, code, results in order) |
 | `Ctrl+Shift+L` | anywhere | review announcement history |
 | `F3` | anywhere | repeat the last search |
 | `Ctrl+Alt+Z` / `Ctrl+Alt+Y` | anywhere | undo / redo cell operations |
