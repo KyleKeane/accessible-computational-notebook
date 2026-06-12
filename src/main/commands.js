@@ -106,7 +106,10 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     sendToRenderer(getWindow(), 'cell-execution-finished', { id: cell.id, status });
     const allOutputs = store.getCell(cell.id).outputs;
     const summary = outputSummary(status, allOutputs, settings?.values.maxAnnouncedOutputLength);
-    announce(`Cell ${position} ${status === 'ok' ? 'done' : 'failed'}. ${summary}`, status === 'error');
+    // Long runs report their duration (the Wolfram Timing instinct).
+    const seconds = (Date.now() - startedAt) / 1000;
+    const took = seconds >= 2 ? ` in ${Math.round(seconds)} seconds` : '';
+    announce(`Cell ${position} ${status === 'ok' ? 'done' : 'failed'}${took}. ${summary}`, status === 'error');
 
     if (advance && status === 'ok') advanceFrom(cell.id);
   }
@@ -185,11 +188,12 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     announce('Settings saved');
   }
 
-  function insertCell(type, position) {
+  function insertCell(type, position, source = '') {
     if (blockedByDialog()) return;
     if (position !== 'above') expandIfCollapsedHeading(store.activeCellId);
     const cell = store.insertCell({
       type,
+      source,
       relativeTo: store.activeCellId,
       position
     });
@@ -292,25 +296,33 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     focusCell(merged.id, true);
   }
 
-  /** Evaluate selected text without touching any cell's outputs —
-      Wolfram-style in-place exploration; the result is only spoken. */
-  async function runSnippet(code) {
-    if (blockedByDialog()) return;
-    if (!code || code.trim() === '') {
-      announce('Select some code first');
-      return;
-    }
+  /** Evaluate code without touching any cell's outputs. Returns
+      { status, summary } for callers that present the result themselves. */
+  async function evaluateSnippet(code) {
     let result;
     try {
       result = await kernels.execute(store.metadata.kernelName, code, {
         timeoutMs: (settings?.values.executionTimeoutSeconds ?? 0) * 1000
       });
     } catch (error) {
-      announce(error.message, true);
+      return { status: 'error', summary: error.message };
+    }
+    return {
+      status: result.status,
+      summary: outputSummary(result.status, result.outputs, settings?.values.maxAnnouncedOutputLength)
+    };
+  }
+
+  /** Evaluate selected text — Wolfram-style in-place exploration; the
+      result is only spoken. */
+  async function runSnippet(code) {
+    if (blockedByDialog()) return;
+    if (!code || code.trim() === '') {
+      announce('Select some code first');
       return;
     }
-    const summary = outputSummary(result.status, result.outputs, settings?.values.maxAnnouncedOutputLength);
-    announce(`Selection: ${summary}`, result.status === 'error');
+    const { status, summary } = await evaluateSnippet(code);
+    announce(`Selection: ${summary}`, status === 'error');
   }
 
   /** Collapse or expand the section starting at the active heading cell. */
@@ -430,6 +442,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     splitCell,
     mergeBelow,
     runSnippet,
+    evaluateSnippet,
     describeNotebook,
     toggleSection,
     moveCell,

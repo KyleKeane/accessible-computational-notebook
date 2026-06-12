@@ -68,6 +68,7 @@ Like Jupyter, a cell is either *selected* (focus on the cell itself) or
 | `Ctrl+Shift+X` / `C` / `V` | anywhere | cut / copy / paste cell |
 | `Ctrl+Shift+Minus` | editor | split the cell at the cursor |
 | `F9` | editor | run only the selected text (result is spoken, not stored) |
+| `Ctrl+E` | anywhere | quick evaluate: hear an expression's result, insert as a cell when it's right |
 | `Ctrl+Shift+J` | anywhere | go to section (markdown headings outline) |
 | `Ctrl+Shift+T` | heading cell | collapse / expand the section (persisted in the file) |
 | `Ctrl+Shift+N` | anywhere | describe the notebook (name, cells, sections, kernel) |

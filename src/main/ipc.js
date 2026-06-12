@@ -71,7 +71,9 @@ export function registerIpc({ store, kernels, getWindow, settings, getFilePath }
       case 'run-all':
         return commands.runAll();
       case 'insert-cell':
-        return commands.insertCell(args.type ?? 'code', args.position ?? 'below');
+        return commands.insertCell(args.type ?? 'code', args.position ?? 'below', args.source ?? '');
+      case 'evaluate-snippet':
+        return commands.evaluateSnippet(args.code ?? '');
       case 'delete-cell':
         return commands.deleteCell();
       case 'cut-cell':

@@ -87,6 +87,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           click: toRenderer('run-selection')
         },
         {
+          label: 'Quick Evaluate…',
+          accelerator: 'CmdOrCtrl+E',
+          click: toRenderer('show-quick-eval')
+        },
+        {
           label: 'Run All Cells',
           accelerator: 'CmdOrCtrl+Shift+Enter',
           click: () => commands.runAll()

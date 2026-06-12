@@ -7,6 +7,7 @@ import { setupKeyboard } from './keyboard.js';
 import { setupFind } from './find.js';
 import { setupIntelligence } from './intelligence.js';
 import { setupNavigation } from './navigation.js';
+import { setupQuickEval } from './quick-eval.js';
 import { announce } from './announcer.js';
 
 const api = window.notebook;
@@ -14,6 +15,7 @@ const view = new NotebookView(api);
 const find = setupFind(api, view);
 const intelligence = setupIntelligence(api, view);
 const navigation = setupNavigation(api, view);
+const quickEval = setupQuickEval(api);
 
 async function refresh() {
   const state = await api.getState();
@@ -54,6 +56,7 @@ api.onEvent((channel, payload) => {
   }
   if (intelligence.handleEvent(channel, payload)) return;
   if (navigation.handleEvent(channel, payload)) return;
+  if (quickEval.handleEvent(channel, payload)) return;
   view.handleEvent(channel, payload);
 });
 
