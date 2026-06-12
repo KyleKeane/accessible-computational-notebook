@@ -259,7 +259,12 @@ ACCESSIBILITY); CI.
 - [x] A third kernel — Bash — via the same runner contract (state snapshots
   between cells, streamed output, structured exit-status errors; POSIX only).
 - [ ] Additional kernels (R, Julia) via the same runner contract.
-- [ ] Packaging with electron-builder; signed releases.
+- [x] Narrative mode and exports: the notebook as one linear story
+  (`Ctrl+Shift+E`), exportable as text — the record of the computation's
+  flow. Quick Evaluate scratchpad (`Ctrl+E`), initialization cells,
+  `?symbol` documentation cells.
+- [x] Packaging configured (electron-builder targets for Linux/macOS/
+  Windows; `npm run dist`). Signing remains a release-time task.
 
 ### Milestone 4 — community
 
