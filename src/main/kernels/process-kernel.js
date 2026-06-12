@@ -1,0 +1,240 @@
+/**
+ * ProcessKernel — generic client for a child-process kernel runner speaking
+ * the JSON lines protocol. No Electron dependency; integration-tested under
+ * plain Node against both runners.
+ */
+
+import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import readline from 'node:readline';
+
+export class ProcessKernel extends EventEmitter {
+  /**
+   * @param {object} spec
+   * @param {string} spec.command   executable, e.g. 'python3' or process.execPath
+   * @param {string[]} spec.args    arguments, e.g. [runnerPath]
+   * @param {string} spec.displayName
+   */
+  constructor(spec) {
+    super();
+    this.spec = spec;
+    this.process = null;
+    this.pending = new Map(); // execute id -> { resolve, onStream }
+    this.pendingRequests = new Map(); // request id -> resolve
+    this.nextId = 1;
+    this.status = 'stopped'; // stopped | starting | idle | busy | dead
+  }
+
+  start() {
+    if (this.process) return;
+    this.status = 'starting';
+    const child = spawn(this.spec.command, this.spec.args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...(this.spec.env ?? {}) },
+      cwd: this.spec.getCwd?.() ?? undefined
+    });
+    this.process = child;
+
+    const rl = readline.createInterface({ input: child.stdout, terminal: false });
+    rl.on('line', (line) => this.#handleLine(line));
+
+    child.stderr.on('data', (chunk) => {
+      this.emit('kernel-stderr', chunk.toString());
+    });
+
+    child.on('error', (error) => {
+      if (this.process !== child) return;
+      this.status = 'dead';
+      this.#failAll(`Could not start ${this.spec.displayName}: ${error.message}`);
+      this.emit('status-changed', this.status);
+    });
+
+    // After restart() a stale exit event from the old child may still fire;
+    // only the current child may change kernel state.
+    child.on('exit', (code, signal) => {
+      if (this.process !== child) return;
+      this.process = null;
+      if (this.status !== 'stopped') {
+        this.status = 'dead';
+        this.#failAll(
+          `${this.spec.displayName} kernel exited unexpectedly` +
+            (signal ? ` (signal ${signal})` : code !== null ? ` (code ${code})` : '')
+        );
+        this.emit('status-changed', this.status);
+      }
+    });
+
+    this.status = 'idle';
+    this.emit('status-changed', this.status);
+  }
+
+  #handleLine(line) {
+    let message;
+    try {
+      message = JSON.parse(line);
+    } catch {
+      return;
+    }
+    if (message.type === 'stream') {
+      this.pending.get(message.id)?.onStream?.({ name: message.name, text: message.text });
+      this.emit('stream', { id: message.id, name: message.name, text: message.text });
+      return;
+    }
+    if (message.type === 'api') {
+      this.emit('api-request', {
+        request: { method: message.method, args: message.args ?? {} },
+        respond: (value, error = null) => {
+          this.process?.stdin.write(
+            JSON.stringify({ type: 'api-result', apiId: message.apiId, value, error }) + '\n'
+          );
+        }
+      });
+      return;
+    }
+    if (typeof message.type === 'string' && message.type.endsWith('-result') &&
+        this.pendingRequests.has(message.id)) {
+      const resolve = this.pendingRequests.get(message.id);
+      this.pendingRequests.delete(message.id);
+      resolve(message);
+      return;
+    }
+    if (message.type === 'result' && this.pending.has(message.id)) {
+      const { resolve } = this.pending.get(message.id);
+      this.pending.delete(message.id);
+      if (this.pending.size === 0 && this.status === 'busy') {
+        this.status = 'idle';
+        this.emit('status-changed', this.status);
+      }
+      resolve({
+        status: message.status,
+        outputs: message.outputs ?? [],
+        executionCount: message.executionCount ?? null
+      });
+    }
+  }
+
+  #failAll(reason) {
+    for (const [, { resolve }] of this.pending) {
+      resolve({
+        status: 'error',
+        outputs: [{ type: 'error', ename: 'KernelError', evalue: reason, traceback: reason }],
+        executionCount: null
+      });
+    }
+    this.pending.clear();
+  }
+
+  /**
+   * Execute code; resolves with { status, outputs, executionCount }.
+   * Stream output produced during execution is delivered incrementally via
+   * `onStream({ name, text })`; the final outputs contain only results and
+   * errors. With `timeoutMs > 0` the cell is interrupted when the limit is
+   * reached (and the kernel restarted if the interrupt is ignored). Never
+   * rejects — kernel failures come back as error outputs so the UI has one
+   * rendering path.
+   */
+  execute(code, { onStream, timeoutMs = 0 } = {}) {
+    if (!this.process) this.start();
+    if (!this.process || this.status === 'dead') {
+      return Promise.resolve({
+        status: 'error',
+        outputs: [{
+          type: 'error',
+          ename: 'KernelError',
+          evalue: `${this.spec.displayName} kernel is not available`,
+          traceback: `${this.spec.displayName} kernel is not available`
+        }],
+        executionCount: null
+      });
+    }
+    const id = this.nextId++;
+    return new Promise((resolve) => {
+      let timer = null;
+      let graceTimer = null;
+      let timedOut = false;
+      const finish = (result) => {
+        clearTimeout(timer);
+        clearTimeout(graceTimer);
+        if (timedOut) {
+          const seconds = timeoutMs / 1000;
+          const message = `Execution exceeded the ${seconds} second limit and was stopped`;
+          result = {
+            ...result,
+            status: 'error',
+            outputs: [{ type: 'error', ename: 'TimeoutError', evalue: message, traceback: message }]
+          };
+        }
+        resolve(result);
+      };
+      this.pending.set(id, { resolve: finish, onStream });
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          timedOut = true;
+          this.interrupt();
+          // If the interrupt is ignored (or the runner can't honor SIGINT,
+          // like a busy JS loop on some platforms), restart as a last resort.
+          graceTimer = setTimeout(() => {
+            if (this.pending.has(id)) this.restart();
+          }, 3000);
+        }, timeoutMs);
+      }
+      if (this.status !== 'busy') {
+        this.status = 'busy';
+        this.emit('status-changed', this.status);
+      }
+      this.process.stdin.write(JSON.stringify({ id, type: 'execute', code }) + '\n');
+    });
+  }
+
+  /**
+   * Ask the kernel something that isn't an execution: 'inspect',
+   * 'complete' (with { code, cursor }), or 'docs'. Resolves with the
+   * kernel's reply, or { error } if the kernel is unavailable or busy for
+   * longer than `timeoutMs`. Does not affect busy/idle status.
+   */
+  request(kind, payload = {}, timeoutMs = 10000) {
+    if (!this.process) this.start();
+    if (!this.process || this.status === 'dead') {
+      return Promise.resolve({ error: `${this.spec.displayName} kernel is not available` });
+    }
+    const id = this.nextId++;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        resolve({ error: 'The kernel is busy; try again when the current cell finishes' });
+      }, timeoutMs);
+      this.pendingRequests.set(id, (message) => {
+        clearTimeout(timer);
+        resolve(message);
+      });
+      this.process.stdin.write(JSON.stringify({ id, type: kind, ...payload }) + '\n');
+    });
+  }
+
+  /** Fire-and-forget message to the runner (e.g. chdir). */
+  notify(kind, payload = {}) {
+    if (!this.process) this.start();
+    this.process?.stdin.write(JSON.stringify({ type: kind, ...payload }) + '\n');
+  }
+
+  /** Interrupt the running cell (SIGINT). Works for the Python runner. */
+  interrupt() {
+    if (this.process) this.process.kill('SIGINT');
+  }
+
+  /** Stop the kernel; pending executions resolve as errors. */
+  stop() {
+    if (!this.process) return;
+    this.status = 'stopped';
+    this.#failAll('Kernel was stopped');
+    this.process.kill();
+    this.process = null;
+    this.emit('status-changed', this.status);
+  }
+
+  /** Restart with a fresh session (all state lost). */
+  restart() {
+    this.stop();
+    this.start();
+  }
+}
