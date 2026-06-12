@@ -120,6 +120,23 @@
     <select id="outline-list" size="12" aria-label="Sections, press Enter to go"></select>
   </dialog>
 
+  <dialog id="quick-eval-dialog" aria-labelledby="quick-eval-title">
+    <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <h1 id="quick-eval-title">Quick evaluate</h1>
+    <p class="dialog-hint">Type an expression and press Enter to hear its result. Nothing is added to the notebook unless you insert it. Uses the current kernel's session.</p>
+    <div class="find-row">
+      <label for="quick-eval-input">Expression</label>
+      <input id="quick-eval-input" type="text" autocomplete="off">
+    </div>
+    <div class="find-row">
+      <button id="quick-eval-run" type="button">Evaluate</button>
+      <button id="quick-eval-insert" type="button">Insert last as cell</button>
+      <button id="quick-eval-close" type="button">Close</button>
+    </div>
+    <h2>This session</h2>
+    <ol id="quick-eval-log"></ol>
+  </dialog>
+
   <dialog id="narrative-dialog" aria-labelledby="narrative-title">
     <div class="dialog-announcer sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <h1 id="narrative-title">Notebook narrative</h1>
@@ -169,6 +186,7 @@
       <dt>Shift+Enter</dt><dd>Run cell and advance (creates a new cell at the end)</dd>
       <dt>Ctrl+Enter</dt><dd>Run cell in place</dd>
       <dt>F9</dt><dd>Run only the selected text; the result is spoken, nothing is stored</dd>
+      <dt>Ctrl+E</dt><dd>Quick evaluate: type an expression, hear its result, insert it as a cell when it's right</dd>
       <dt>Ctrl+Shift+Enter</dt><dd>Run all cells</dd>
       <dt>_ and Out[n]</dt><dd>In code: the last result, and the result of execution n</dd>
       <dt>Ctrl+.</dt><dd>Interrupt kernel</dd>
