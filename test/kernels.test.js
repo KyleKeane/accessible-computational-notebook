@@ -169,6 +169,29 @@ test('javascript: errors are structured and the session survives them', async ()
   }
 });
 
+test('python: Out[n] holds the result of execution n; _ is the last result', async () => {
+  const kernel = pythonKernel();
+  try {
+    await kernel.execute('10 + 5');        // execution 1
+    await kernel.execute('x = "no result"'); // execution 2, no Out entry
+    const result = await kernel.execute('(Out[1], _, 1 in Out, 2 in Out)');
+    assert.equal(textOf(result.outputs, 'execute_result'), '(15, 15, True, False)');
+  } finally {
+    kernel.stop();
+  }
+});
+
+test('javascript: Out[n] holds the result of execution n', async () => {
+  const kernel = jsKernel();
+  try {
+    await kernel.execute('10 + 5');
+    const result = await kernel.execute('[Out[1], _]');
+    assert.equal(textOf(result.outputs, 'execute_result'), '[ 15, 15 ]');
+  } finally {
+    kernel.stop();
+  }
+});
+
 test('restart gives a fresh session', async () => {
   const kernel = pythonKernel();
   try {

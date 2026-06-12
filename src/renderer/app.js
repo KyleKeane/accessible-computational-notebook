@@ -7,6 +7,7 @@ import { setupKeyboard } from './keyboard.js';
 import { setupFind } from './find.js';
 import { setupIntelligence } from './intelligence.js';
 import { setupNavigation } from './navigation.js';
+import { announce } from './announcer.js';
 
 const api = window.notebook;
 const view = new NotebookView(api);
@@ -43,10 +44,43 @@ api.onEvent((channel, payload) => {
     openSettings();
     return;
   }
+  if (channel === 'split-cell-at-cursor') {
+    splitAtCursor();
+    return;
+  }
+  if (channel === 'run-selection') {
+    runSelection();
+    return;
+  }
   if (intelligence.handleEvent(channel, payload)) return;
   if (navigation.handleEvent(channel, payload)) return;
   view.handleEvent(channel, payload);
 });
+
+/* ---------- cursor-dependent commands ---------- */
+
+function focusedEditor() {
+  const editor = view.activeCellElement()?.querySelector('.editor');
+  return editor && !editor.hidden && document.activeElement === editor ? editor : null;
+}
+
+function splitAtCursor() {
+  const editor = focusedEditor();
+  if (!editor) {
+    announce('Split works inside a cell editor');
+    return;
+  }
+  const section = editor.closest('.cell');
+  api.command('split-cell', { id: section.dataset.id, offset: editor.selectionStart });
+}
+
+function runSelection() {
+  const editor = focusedEditor();
+  const code = editor
+    ? editor.value.slice(editor.selectionStart, editor.selectionEnd)
+    : '';
+  api.command('run-snippet', { code });
+}
 
 /* ---------- settings dialog ---------- */
 

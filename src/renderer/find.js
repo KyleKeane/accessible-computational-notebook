@@ -155,5 +155,16 @@ export function setupFind(api, view) {
     current = null;
   });
 
+  // F3 repeats the last search without reopening the dialog.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'F3' || document.querySelector('dialog:modal')) return;
+    event.preventDefault();
+    if (!findInput.value) {
+      announce('No search yet. Press Control F to search.');
+      return;
+    }
+    findNext();
+  });
+
   return { open };
 }

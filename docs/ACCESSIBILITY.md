@@ -32,6 +32,13 @@ follows, the rationale, and what has and has not been tested.
    only as the direct result of a user command (insert cell → its editor;
    delete cell → the neighbour; run-and-advance → the next editor).
 
+   **No double speech.** When a command moves focus, the screen reader
+   already reads the focused element's label (type, position) — so the
+   announcement carries only the event ("Inserted", "Deleted", "Pasted").
+   Position is spoken only when focus does not move (e.g. "Moved up to 2
+   of 9"). Fast cells skip the "Running" announcement entirely: if a cell
+   finishes within 400 ms, only the completion line is spoken.
+
 6. **Shortcut hygiene.** No bare `Alt+letter` (collides with menu
    mnemonics), nothing on `Insert` or `CapsLock` (screen-reader modifiers),
    no overrides of standard editing keys. Jupyter's `Shift+Enter` /

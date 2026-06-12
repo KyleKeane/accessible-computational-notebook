@@ -81,6 +81,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           click: () => commands.runCell(null, { advance: true })
         },
         {
+          label: 'Run Selection',
+          accelerator: 'F9',
+          click: toRenderer('run-selection')
+        },
+        {
           label: 'Run All Cells',
           accelerator: 'CmdOrCtrl+Shift+Enter',
           click: () => commands.runAll()
@@ -111,6 +116,15 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
             { label: 'Markdown', click: () => commands.setCellType('markdown') },
             { label: 'Raw', click: () => commands.setCellType('raw') }
           ]
+        },
+        {
+          label: 'Split Cell at Cursor',
+          accelerator: 'CmdOrCtrl+Shift+-',
+          click: toRenderer('split-cell-at-cursor')
+        },
+        {
+          label: 'Merge with Cell Below',
+          click: () => commands.mergeBelow()
         },
         {
           label: 'Move Cell Up',
@@ -183,6 +197,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
     {
       label: '&Navigate',
       submenu: [
+        {
+          label: 'Describe Notebook',
+          accelerator: 'CmdOrCtrl+Shift+N',
+          click: () => commands.describeNotebook()
+        },
         {
           label: 'Describe Current Cell',
           accelerator: 'CmdOrCtrl+Shift+I',

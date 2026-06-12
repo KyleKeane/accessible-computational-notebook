@@ -355,6 +355,71 @@ export class NotebookStore extends EventEmitter {
     });
   }
 
+  /**
+   * Split a cell at a source offset: the original keeps the text before
+   * the offset (and its outputs); a new cell of the same type below gets
+   * the rest. One undo entry reverses the whole operation.
+   */
+  splitCell(id, offset) {
+    const cell = this.getCell(id);
+    if (!cell) throw new Error(`No such cell: ${id}`);
+    const original = cell.source;
+    const before = original.slice(0, offset).replace(/\n$/, '');
+    const after = original.slice(offset).replace(/^\n/, '');
+    const newCell = this.#makeCell({ type: cell.type, source: after });
+    const apply = () => {
+      cell.source = before;
+      this.emit('cell-source-changed', { id, source: before });
+      this.#insertExisting({ ...newCell }, this.indexOf(id) + 1);
+    };
+    this.#replay(apply);
+    this.#markDirty();
+    this.#record({
+      label: 'split cell',
+      undo: () => {
+        this.#deleteById(newCell.id);
+        cell.source = original;
+        this.emit('cell-source-changed', { id, source: original });
+        this.#markDirty();
+      },
+      redo: apply
+    });
+    return newCell;
+  }
+
+  /**
+   * Merge a cell with the one below it. The merged cell keeps the upper
+   * cell's outputs; the lower cell's outputs are dropped. Returns the
+   * merged cell, or null if there is nothing below.
+   */
+  mergeWithBelow(id) {
+    const index = this.indexOf(id);
+    if (index === -1) throw new Error(`No such cell: ${id}`);
+    const cell = this.cells[index];
+    const below = this.cells[index + 1];
+    if (!below) return null;
+    const originalSource = cell.source;
+    const belowSnapshot = { ...below, outputs: [...below.outputs] };
+    const merged = [cell.source, below.source].filter((s) => s !== '').join('\n');
+    const apply = () => {
+      cell.source = merged;
+      this.emit('cell-source-changed', { id, source: merged });
+      this.#deleteById(below.id);
+    };
+    this.#replay(apply);
+    this.#markDirty();
+    this.#record({
+      label: 'merge cells',
+      undo: () => {
+        cell.source = originalSource;
+        this.emit('cell-source-changed', { id, source: originalSource });
+        this.#insertExisting({ ...belowSnapshot, outputs: [...belowSnapshot.outputs] }, this.indexOf(id) + 1);
+      },
+      redo: apply
+    });
+    return cell;
+  }
+
   setActiveCell(id) {
     if (id !== null && !this.getCell(id)) return;
     if (this.activeCellId === id) return;

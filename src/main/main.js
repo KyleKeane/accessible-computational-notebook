@@ -249,7 +249,13 @@ function createWindow() {
 app.whenReady().then(async () => {
   settings = new SettingsStore(app.getPath('userData'));
   await settings.load();
-  const commands = registerIpc({ store, kernels, getWindow: () => window, settings });
+  const commands = registerIpc({
+    store,
+    kernels,
+    getWindow: () => window,
+    settings,
+    getFilePath: () => filePath
+  });
   const menuContext = {
     store,
     kernels,

@@ -26,8 +26,8 @@ const FORWARDED_STORE_EVENTS = [
   'dirty-changed'
 ];
 
-export function registerIpc({ store, kernels, getWindow, settings }) {
-  const commands = createCommands({ store, kernels, getWindow, settings });
+export function registerIpc({ store, kernels, getWindow, settings, getFilePath }) {
+  const commands = createCommands({ store, kernels, getWindow, settings, getFilePath });
 
   for (const event of FORWARDED_STORE_EVENTS) {
     store.on(event, (payload) => sendToRenderer(getWindow(), event, payload));
@@ -79,6 +79,14 @@ export function registerIpc({ store, kernels, getWindow, settings }) {
         return commands.copyCell();
       case 'paste-cell':
         return commands.pasteCell();
+      case 'split-cell':
+        return commands.splitCell(args.id, args.offset);
+      case 'merge-below':
+        return commands.mergeBelow();
+      case 'run-snippet':
+        return commands.runSnippet(args.code);
+      case 'describe-notebook':
+        return commands.describeNotebook();
       case 'move-cell':
         return commands.moveCell(args.direction);
       case 'set-cell-type':

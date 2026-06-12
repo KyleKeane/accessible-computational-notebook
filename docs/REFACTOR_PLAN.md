@@ -239,9 +239,16 @@ ACCESSIBILITY); CI.
   variable inspector (`Ctrl+Shift+W`), kernel-aware completion
   (`Ctrl+Space`), symbol documentation (`Ctrl+Shift+U`); kernels run in
   the notebook file's directory.
-- [x] Structure and review tools: cell cut/copy/paste, Go to Section
-  outline (`Ctrl+Shift+J`), announcement history (`Ctrl+Shift+L`),
-  "still running" progress announcements every 30 s.
+- [x] Structure and review tools: cell cut/copy/paste, split/merge cells,
+  Go to Section outline (`Ctrl+Shift+J`), Describe Notebook
+  (`Ctrl+Shift+N`), announcement history (`Ctrl+Shift+L`), F3 repeat
+  search, "still running" progress announcements every 30 s.
+- [x] Wolfram-parity evaluation features: Run Selection (`F9`, result
+  spoken without touching outputs), `_` and `Out[n]` result history in
+  Python and JavaScript.
+- [x] Minimal-speech pass: fast cells skip the "Running" announcement
+  (only the completion line is spoken); commands that move focus announce
+  only the event, since the focused cell's label carries type/position.
 - [ ] Optional syntax-aware editor (evaluate CodeMirror 6 accessibility;
   textarea remains the fallback). Requires npm dependencies — deliberate
   pause point.

@@ -85,6 +85,8 @@ const sandbox = {
   process: { env: process.env, platform: process.platform, version: process.version }
 };
 sandbox.globalThis = sandbox;
+// `_` is the last result; Out[n] is the result of execution n.
+sandbox.Out = {};
 const context = vm.createContext(sandbox);
 
 /**
@@ -110,7 +112,7 @@ function compileWithAwait(code) {
   return new vm.Script(`(async () => { ${code}\n })()`, { filename: '<cell>' });
 }
 
-async function runCell(code) {
+async function runCell(code, execCount = null) {
   const outputs = [];
   let status = 'ok';
   try {
@@ -130,6 +132,7 @@ async function runCell(code) {
     }
     if (result !== undefined) {
       context._ = result;
+      if (execCount !== null) sandbox.Out[execCount] = result;
       outputs.push({ type: 'execute_result', text: util.inspect(result) });
     }
   } catch (error) {
@@ -149,7 +152,7 @@ async function runCell(code) {
 const INJECTED = new Set([
   'console', 'notebook', 'require', 'setTimeout', 'setInterval', 'clearTimeout',
   'clearInterval', 'queueMicrotask', 'URL', 'TextEncoder', 'TextDecoder',
-  'fetch', 'process', 'globalThis', '_'
+  'fetch', 'process', 'globalThis', '_', 'Out'
 ]);
 
 function preview(value) {
@@ -294,7 +297,7 @@ rl.on('line', (line) => {
     executionCount += 1;
     currentExecuteId = message.id;
     recordLexicalNames(message.code ?? '');
-    const { status, outputs } = await runCell(message.code ?? '');
+    const { status, outputs } = await runCell(message.code ?? '', executionCount);
     send({
       id: message.id,
       type: 'result',

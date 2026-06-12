@@ -128,11 +128,13 @@ class NotebookAPI:
         return self._call("delete_cell", index=index)
 
 
-namespace = {"__name__": "__main__", "notebook": NotebookAPI()}
+# `_` is the last result; Out[n] is the result of execution n (Wolfram's
+# %n / IPython's Out[n]).
+namespace = {"__name__": "__main__", "notebook": NotebookAPI(), "Out": {}}
 
 # ---------- kernel intelligence: inspect / complete / docs ----------
 
-HIDDEN_NAMES = {"notebook", "__name__", "__builtins__"}
+HIDDEN_NAMES = {"notebook", "Out", "__name__", "__builtins__"}
 
 
 def describe_value(value):
@@ -218,7 +220,7 @@ def docs_for(code, cursor):
 
 
 
-def run_cell(code):
+def run_cell(code, exec_count=None):
     outputs = []
     status = "ok"
     try:
@@ -234,6 +236,8 @@ def run_cell(code):
                 value = eval(compile(trailing_expr, "<cell>", "eval"), namespace)
                 if value is not None:
                     namespace["_"] = value
+                    if exec_count is not None:
+                        namespace["Out"][exec_count] = value
                     outputs.append({"type": "execute_result", "text": repr(value)})
     except KeyboardInterrupt:
         status = "error"
@@ -289,7 +293,7 @@ def main():
             continue
         execution_count += 1
         current_execute_id = message.get("id")
-        status, outputs = run_cell(message.get("code", ""))
+        status, outputs = run_cell(message.get("code", ""), execution_count)
         send({
             "id": message.get("id"),
             "type": "result",

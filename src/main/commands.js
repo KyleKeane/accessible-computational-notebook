@@ -6,11 +6,17 @@
 
 import { sendToRenderer } from './ipc.js';
 import { outputSummary } from '../core/output-summary.js';
+import { extractOutline } from '../core/outline.js';
 
 /** A blind user's progress indicator: periodic "still running" updates. */
 const STILL_RUNNING_INTERVAL_MS = 30000;
 
-export function createCommands({ store, kernels, getWindow, settings }) {
+/** Fast cells skip the "Running" announcement: hearing "Running cell 2"
+    immediately followed by "Cell 2 done" is the chattiest pattern in the
+    app, and the completion line carries all the information. */
+const RUNNING_ANNOUNCE_DELAY_MS = 400;
+
+export function createCommands({ store, kernels, getWindow, settings, getFilePath }) {
   const announce = (text, assertive = false) =>
     sendToRenderer(getWindow(), 'announce', { text, assertive });
 
@@ -49,11 +55,13 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     }
 
     const position = store.indexOf(cell.id) + 1;
-    announce(`Running cell ${position}`);
     sendToRenderer(getWindow(), 'cell-execution-started', { id: cell.id });
     store.clearOutputs(cell.id);
 
     const startedAt = Date.now();
+    const runningTimer = setTimeout(() => {
+      announce(`Running cell ${position}`);
+    }, RUNNING_ANNOUNCE_DELAY_MS);
     const stillRunning = setInterval(() => {
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       announce(`Cell ${position} still running, ${seconds} seconds`);
@@ -73,6 +81,7 @@ export function createCommands({ store, kernels, getWindow, settings }) {
       }
     );
 
+    clearTimeout(runningTimer);
     clearInterval(stillRunning);
     // The cell may have been deleted while the kernel was busy.
     if (!store.getCell(cell.id)) return;
@@ -166,8 +175,9 @@ export function createCommands({ store, kernels, getWindow, settings }) {
       relativeTo: store.activeCellId,
       position
     });
-    const index = store.indexOf(cell.id);
-    announce(`${type} cell inserted at position ${index + 1} of ${store.cellCount}`);
+    // Focus moves to the new editor, whose label carries type and
+    // position — announcing them again would be double speech.
+    announce('Inserted');
     focusCell(cell.id, true);
   }
 
@@ -175,12 +185,12 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     if (blockedByDialog()) return;
     const id = store.activeCellId;
     if (!id) return;
-    const index = store.indexOf(id);
     if (!store.deleteCell(id)) {
       announce('Cannot delete the only cell');
       return;
     }
-    announce(`Cell ${index + 1} deleted, ${store.cellCount} cells remain`);
+    // Focus lands on the neighbour, whose label gives the new position.
+    announce('Deleted');
     focusCell(store.activeCellId);
   }
 
@@ -189,7 +199,8 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     const id = store.activeCellId;
     if (!id) return;
     if (store.moveCell(id, direction)) {
-      announce(`Cell moved ${direction} to position ${store.indexOf(id) + 1} of ${store.cellCount}`);
+      // Re-focusing the same element is silent, so position matters here.
+      announce(`Moved ${direction} to ${store.indexOf(id) + 1} of ${store.cellCount}`);
       focusCell(id);
     } else {
       announce(`Cell is already at the ${direction === 'up' ? 'top' : 'bottom'}`);
@@ -230,8 +241,64 @@ export function createCommands({ store, kernels, getWindow, settings }) {
       relativeTo: store.activeCellId,
       position: 'below'
     });
-    announce(`Cell pasted at position ${store.indexOf(cell.id) + 1} of ${store.cellCount}`);
+    announce('Pasted');
     focusCell(cell.id);
+  }
+
+  function splitCell(id, offset) {
+    if (blockedByDialog()) return;
+    const cellId = id ?? store.activeCellId;
+    if (!store.getCell(cellId)) return;
+    const newCell = store.splitCell(cellId, offset);
+    announce('Cell split');
+    focusCell(newCell.id, true);
+  }
+
+  function mergeBelow() {
+    if (blockedByDialog()) return;
+    const id = store.activeCellId;
+    if (!id) return;
+    const merged = store.mergeWithBelow(id);
+    if (!merged) {
+      announce('No cell below to merge with');
+      return;
+    }
+    announce('Cells merged');
+    focusCell(merged.id, true);
+  }
+
+  /** Evaluate selected text without touching any cell's outputs —
+      Wolfram-style in-place exploration; the result is only spoken. */
+  async function runSnippet(code) {
+    if (blockedByDialog()) return;
+    if (!code || code.trim() === '') {
+      announce('Select some code first');
+      return;
+    }
+    const { status, outputs } = await kernels.execute(store.metadata.kernelName, code, {
+      timeoutMs: (settings?.values.executionTimeoutSeconds ?? 0) * 1000
+    });
+    const summary = outputSummary(status, outputs, settings?.values.maxAnnouncedOutputLength);
+    announce(`Selection: ${summary}`, status === 'error');
+  }
+
+  /** One-keystroke orientation: where am I, what is this notebook. */
+  function describeNotebook() {
+    const name = getFilePath?.() ?? null;
+    const counts = { code: 0, markdown: 0, raw: 0 };
+    for (const cell of store.cells) counts[cell.type] += 1;
+    const sections = extractOutline(store.cells).length;
+    const kernelName = store.metadata.kernelName;
+    const spec = kernels.list().find((k) => k.name === kernelName);
+    const parts = [
+      name ? name.split(/[\\/]/).pop() : 'Untitled notebook',
+      store.dirty ? 'modified' : 'saved',
+      `${store.cellCount} cell${store.cellCount === 1 ? '' : 's'}: ` +
+        Object.entries(counts).filter(([, n]) => n > 0).map(([t, n]) => `${n} ${t}`).join(', '),
+      sections > 0 ? `${sections} section${sections === 1 ? '' : 's'}` : null,
+      `${spec?.displayName ?? kernelName} kernel ${kernels.status(kernelName)}`
+    ];
+    announce(parts.filter(Boolean).join('. '));
   }
 
   function setCellType(type) {
@@ -308,6 +375,10 @@ export function createCommands({ store, kernels, getWindow, settings }) {
     copyCell,
     cutCell,
     pasteCell,
+    splitCell,
+    mergeBelow,
+    runSnippet,
+    describeNotebook,
     moveCell,
     setCellType,
     setKernel,

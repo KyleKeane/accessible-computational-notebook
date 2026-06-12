@@ -167,6 +167,50 @@ test('reset and load clear the undo history', () => {
   assert.equal(store.undo(), null);
 });
 
+test('splitCell divides at the offset and is undoable as one step', () => {
+  const store = new NotebookStore();
+  const cell = store.cells[0];
+  store.updateSource(cell.id, 'x = 1\ny = 2');
+  store.setOutputs(cell.id, [{ type: 'execute_result', text: '1' }], 1);
+  const newCell = store.splitCell(cell.id, 6); // right after "x = 1\n"
+  assert.equal(store.cellCount, 2);
+  assert.equal(store.cells[0].source, 'x = 1');
+  assert.equal(store.cells[1].source, 'y = 2');
+  assert.equal(store.cells[1].id, newCell.id);
+  assert.deepEqual(store.cells[0].outputs, [{ type: 'execute_result', text: '1' }]);
+  assert.deepEqual(store.cells[1].outputs, []);
+
+  assert.equal(store.undo(), 'split cell');
+  assert.equal(store.cellCount, 1);
+  assert.equal(store.cells[0].source, 'x = 1\ny = 2');
+  assert.equal(store.redo(), 'split cell');
+  assert.equal(store.cells[1].source, 'y = 2');
+});
+
+test('mergeWithBelow joins sources, keeps upper outputs, undo restores both', () => {
+  const store = new NotebookStore();
+  const a = store.cells[0];
+  store.updateSource(a.id, 'top');
+  const b = store.insertCell({ relativeTo: a.id, position: 'below', source: 'bottom' });
+  store.setOutputs(b.id, [{ type: 'execute_result', text: 'gone' }], 2);
+  const merged = store.mergeWithBelow(a.id);
+  assert.equal(merged.id, a.id);
+  assert.equal(store.cellCount, 1);
+  assert.equal(store.cells[0].source, 'top\nbottom');
+
+  assert.equal(store.undo(), 'merge cells');
+  assert.equal(store.cellCount, 2);
+  assert.equal(store.cells[0].source, 'top');
+  assert.equal(store.cells[1].source, 'bottom');
+  assert.deepEqual(store.cells[1].outputs, [{ type: 'execute_result', text: 'gone' }]);
+});
+
+test('mergeWithBelow on the last cell returns null', () => {
+  const store = new NotebookStore();
+  assert.equal(store.mergeWithBelow(store.cells[0].id), null);
+  assert.equal(store.undo(), null);
+});
+
 test('clearAllOutputs clears every cell', () => {
   const store = new NotebookStore();
   const a = store.cells[0];

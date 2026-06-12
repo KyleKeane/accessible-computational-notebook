@@ -66,8 +66,12 @@ Like Jupyter, a cell is either *selected* (focus on the cell itself) or
 | `Ctrl+Shift+U` | editor | signature + docs for the symbol at the cursor |
 | `Ctrl+Shift+W` | anywhere | list the kernel's variables with types and values |
 | `Ctrl+Shift+X` / `C` / `V` | anywhere | cut / copy / paste cell |
+| `Ctrl+Shift+Minus` | editor | split the cell at the cursor |
+| `F9` | editor | run only the selected text (result is spoken, not stored) |
 | `Ctrl+Shift+J` | anywhere | go to section (markdown headings outline) |
+| `Ctrl+Shift+N` | anywhere | describe the notebook (name, cells, sections, kernel) |
 | `Ctrl+Shift+L` | anywhere | review announcement history |
+| `F3` | anywhere | repeat the last search |
 | `Ctrl+Alt+Z` / `Ctrl+Alt+Y` | anywhere | undo / redo cell operations |
 | `Ctrl+F` | anywhere | find and replace across cells |
 | `Ctrl+.` / `Ctrl+Shift+.` | anywhere | interrupt / restart kernel |
