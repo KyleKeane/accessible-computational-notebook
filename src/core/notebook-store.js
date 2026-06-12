@@ -420,6 +420,27 @@ export class NotebookStore extends EventEmitter {
     return cell;
   }
 
+  /**
+   * Mark a heading cell's section as collapsed. Stored in the cell's
+   * nbformat metadata under Jupyter's collapsible-headings convention, so
+   * the state round-trips through .ipynb and other tools.
+   */
+  setCollapsed(id, collapsed) {
+    const cell = this.getCell(id);
+    if (!cell) throw new Error(`No such cell: ${id}`);
+    const nbMetadata = { ...cell.nbMetadata };
+    if (collapsed) nbMetadata.heading_collapsed = true;
+    else delete nbMetadata.heading_collapsed;
+    cell.nbMetadata = nbMetadata;
+    this.#markDirty();
+    this.emit('cell-collapse-changed', { id, collapsed });
+  }
+
+  /** Ids of heading cells currently marked collapsed. */
+  collapsedHeadingIds() {
+    return this.cells.filter((c) => c.nbMetadata?.heading_collapsed).map((c) => c.id);
+  }
+
   setActiveCell(id) {
     if (id !== null && !this.getCell(id)) return;
     if (this.activeCellId === id) return;

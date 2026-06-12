@@ -33,7 +33,10 @@ export function setupKeyboard(view) {
         event.preventDefault();
         const cells = view.cellElements();
         const index = cells.indexOf(cellSection);
-        const next = event.key === 'ArrowUp' ? index - 1 : index + 1;
+        const direction = event.key === 'ArrowUp' ? -1 : 1;
+        // Skip cells hidden inside collapsed sections.
+        let next = index + direction;
+        while (next >= 0 && next < cells.length && cells[next].hidden) next += direction;
         if (next < 0) {
           announce('First cell');
         } else if (next >= cells.length) {

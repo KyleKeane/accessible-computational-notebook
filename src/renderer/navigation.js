@@ -3,7 +3,7 @@
  * headings across the notebook) and the announcement history review.
  */
 
-import { extractOutline } from '../core/outline.js';
+import { extractOutline, sectionRange } from '../core/outline.js';
 import { announce, announcementHistory } from './announcer.js';
 
 export function setupNavigation(api, view) {
@@ -36,11 +36,25 @@ export function setupNavigation(api, view) {
     announce(`${entries.length} sections`);
   }
 
-  function goToSection() {
+  async function goToSection() {
     const ids = JSON.parse(outlineList.dataset.entries ?? '[]');
     const id = ids[Number(outlineList.value)];
     outlineDialog.close();
-    if (id) view.focusCell(id);
+    if (!id) return;
+    // Jumping into a collapsed section expands every section covering it.
+    const state = await api.getState();
+    const targetIndex = state.cells.findIndex((cell) => cell.id === id);
+    for (const heading of state.cells.filter((cell) => cell.nbMetadata?.heading_collapsed)) {
+      const range = sectionRange(state.cells, heading.id);
+      if (range && targetIndex >= range.startIndex && targetIndex < range.endIndex) {
+        await api.command('set-collapsed', { id: heading.id, collapsed: false });
+      }
+    }
+    // The collapse events that unhide the target arrive asynchronously;
+    // unhide it locally so focus succeeds right now.
+    const section = view.cellElement(id);
+    if (section) section.hidden = false;
+    view.focusCell(id);
   }
 
   outlineList.addEventListener('keydown', (event) => {

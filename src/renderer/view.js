@@ -6,6 +6,7 @@
 
 import { renderMarkdown } from '../core/markdown.js';
 import { sanitizeHtml } from '../core/safe-html.js';
+import { hiddenCellIds } from '../core/outline.js';
 import { announce } from './announcer.js';
 
 const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/gif'];
@@ -50,6 +51,21 @@ export class NotebookView {
     for (const section of this.cellElements()) {
       section.classList.toggle('active', section.dataset.id === this.activeCellId);
     }
+    this.applyCollapse(state.cells);
+  }
+
+  /** Hide every cell covered by a collapsed heading; relabels afterwards. */
+  async applyCollapse(cells = null) {
+    if (!cells) {
+      cells = (await this.api.getState()).cells;
+    }
+    const collapsedIds = cells
+      .filter((cell) => cell.nbMetadata?.heading_collapsed)
+      .map((cell) => cell.id);
+    const hidden = hiddenCellIds(cells, collapsedIds);
+    for (const section of this.cellElements()) {
+      section.hidden = hidden.has(section.dataset.id);
+    }
     this.relabel();
   }
 
@@ -60,6 +76,9 @@ export class NotebookView {
     section.dataset.type = cell.type;
     if (cell.executionCount != null) {
       section.dataset.executionCount = String(cell.executionCount);
+    }
+    if (cell.nbMetadata?.heading_collapsed) {
+      section.dataset.collapsed = 'true';
     }
     section.setAttribute('role', 'group');
     section.tabIndex = -1;
@@ -133,7 +152,8 @@ export class NotebookView {
       const editor = section.querySelector('.editor');
       const count = section.dataset.executionCount;
       const countText = count ? `, ran ${count}` : '';
-      section.setAttribute('aria-label', `${type} cell ${position}${countText}`);
+      const collapsedText = section.dataset.collapsed === 'true' ? ', collapsed section' : '';
+      section.setAttribute('aria-label', `${type} cell ${position}${countText}${collapsedText}`);
       section.querySelector('label').textContent = `${type} cell ${position} source`;
       section.querySelector('.outputs').setAttribute('aria-label', `Output of cell ${index + 1}`);
       section.querySelector('.cell-badge').textContent =
@@ -364,6 +384,15 @@ export class NotebookView {
         const section = this.cellElement(payload.id);
         section?.removeAttribute('aria-busy');
         section?.classList.remove('running');
+        break;
+      }
+      case 'cell-collapse-changed': {
+        const section = this.cellElement(payload.id);
+        if (section) {
+          if (payload.collapsed) section.dataset.collapsed = 'true';
+          else delete section.dataset.collapsed;
+          this.applyCollapse();
+        }
         break;
       }
       case 'cell-rendered': {

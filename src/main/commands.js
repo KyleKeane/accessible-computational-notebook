@@ -6,7 +6,7 @@
 
 import { sendToRenderer } from './ipc.js';
 import { outputSummary } from '../core/output-summary.js';
-import { extractOutline } from '../core/outline.js';
+import { extractOutline, sectionRange } from '../core/outline.js';
 
 /** A blind user's progress indicator: periodic "still running" updates. */
 const STILL_RUNNING_INTERVAL_MS = 30000;
@@ -282,6 +282,27 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     announce(`Selection: ${summary}`, status === 'error');
   }
 
+  /** Collapse or expand the section starting at the active heading cell. */
+  function toggleSection() {
+    if (blockedByDialog()) return;
+    const cell = store.getCell(store.activeCellId);
+    if (!cell) return;
+    const range = sectionRange(store.cells, cell.id);
+    if (!range) {
+      announce('Not on a section heading. Sections start at markdown headings.');
+      return;
+    }
+    const collapsed = !cell.nbMetadata?.heading_collapsed;
+    store.setCollapsed(cell.id, collapsed);
+    const count = range.endIndex - range.startIndex;
+    announce(
+      collapsed
+        ? `${range.title} collapsed, ${count} cell${count === 1 ? '' : 's'} hidden`
+        : `${range.title} expanded`
+    );
+    focusCell(cell.id);
+  }
+
   /** One-keystroke orientation: where am I, what is this notebook. */
   function describeNotebook() {
     const name = getFilePath?.() ?? null;
@@ -379,6 +400,7 @@ export function createCommands({ store, kernels, getWindow, settings, getFilePat
     mergeBelow,
     runSnippet,
     describeNotebook,
+    toggleSection,
     moveCell,
     setCellType,
     setKernel,

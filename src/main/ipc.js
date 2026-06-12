@@ -20,6 +20,7 @@ const FORWARDED_STORE_EVENTS = [
   'cell-source-changed',
   'cell-type-changed',
   'cell-moved',
+  'cell-collapse-changed',
   'cell-outputs-changed',
   'active-cell-changed',
   'kernel-name-changed',
@@ -87,6 +88,11 @@ export function registerIpc({ store, kernels, getWindow, settings, getFilePath }
         return commands.runSnippet(args.code);
       case 'describe-notebook':
         return commands.describeNotebook();
+      case 'toggle-section':
+        return commands.toggleSection();
+      case 'set-collapsed':
+        store.setCollapsed(args.id, args.collapsed);
+        return;
       case 'move-cell':
         return commands.moveCell(args.direction);
       case 'set-cell-type':

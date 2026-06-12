@@ -246,6 +246,10 @@ ACCESSIBILITY); CI.
 - [x] Wolfram-parity evaluation features: Run Selection (`F9`, result
   spoken without touching outputs), `_` and `Out[n]` result history in
   Python and JavaScript.
+- [x] Collapsible sections (`Ctrl+Shift+T` on a heading cell): Wolfram-style
+  cell groups built on markdown headings; arrow navigation skips hidden
+  cells, Go to Section auto-expands, state persists via Jupyter's
+  `heading_collapsed` metadata convention.
 - [x] Minimal-speech pass: fast cells skip the "Running" announcement
   (only the completion line is spoken); commands that move focus announce
   only the event, since the focused cell's label carries type/position.

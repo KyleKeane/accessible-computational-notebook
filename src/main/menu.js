@@ -229,6 +229,11 @@ export function buildMenu({ store, kernels, getWindow, actions, commands }) {
           click: toRenderer('show-outline')
         },
         {
+          label: 'Collapse or Expand Section',
+          accelerator: 'CmdOrCtrl+Shift+T',
+          click: () => commands.toggleSection()
+        },
+        {
           label: 'Announcement History…',
           accelerator: 'CmdOrCtrl+Shift+L',
           click: toRenderer('show-history')

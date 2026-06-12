@@ -69,6 +69,7 @@ Like Jupyter, a cell is either *selected* (focus on the cell itself) or
 | `Ctrl+Shift+Minus` | editor | split the cell at the cursor |
 | `F9` | editor | run only the selected text (result is spoken, not stored) |
 | `Ctrl+Shift+J` | anywhere | go to section (markdown headings outline) |
+| `Ctrl+Shift+T` | heading cell | collapse / expand the section (persisted in the file) |
 | `Ctrl+Shift+N` | anywhere | describe the notebook (name, cells, sections, kernel) |
 | `Ctrl+Shift+L` | anywhere | review announcement history |
 | `F3` | anywhere | repeat the last search |
