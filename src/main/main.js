@@ -11,6 +11,7 @@ import { NotebookStore } from '../core/notebook-store.js';
 import { parseIpynb, serializeIpynb } from '../core/ipynb.js';
 import { toScript, scriptExtension } from '../core/export-script.js';
 import { toHtml } from '../core/export-html.js';
+import { cellsToNarrative, narrativeToText } from '../core/narrative.js';
 import { KernelManager } from './kernels/kernel-manager.js';
 import { SettingsStore } from './settings.js';
 import { buildMenu } from './menu.js';
@@ -67,6 +68,19 @@ export async function exportHtml() {
   });
   if (canceled || !target) return;
   await fs.writeFile(target, toHtml(store.getState(), base), 'utf8');
+  sendToRenderer(window, 'announce', { text: `Exported ${path.basename(target)}` });
+}
+
+export async function exportNarrative() {
+  const base = filePath ? path.basename(filePath, path.extname(filePath)) : 'notebook';
+  const { canceled, filePath: target } = await dialog.showSaveDialog(window, {
+    title: 'Export narrative as text',
+    defaultPath: `${base}-narrative.txt`,
+    filters: [{ name: 'Text', extensions: ['txt'] }]
+  });
+  if (canceled || !target) return;
+  const text = narrativeToText(cellsToNarrative(store.getState().cells), base);
+  await fs.writeFile(target, text, 'utf8');
   sendToRenderer(window, 'announce', { text: `Exported ${path.basename(target)}` });
 }
 
@@ -260,7 +274,7 @@ app.whenReady().then(async () => {
     store,
     kernels,
     getWindow: () => window,
-    actions: { newNotebook, openNotebook, saveNotebook, saveNotebookAs, exportScript, exportHtml },
+    actions: { newNotebook, openNotebook, saveNotebook, saveNotebookAs, exportScript, exportHtml, exportNarrative },
     commands
   };
   buildMenu(menuContext);
