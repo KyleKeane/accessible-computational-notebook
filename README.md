@@ -132,6 +132,20 @@ await notebook.getSource(created.index);
 > privileges. The child-process design is for robustness and restartability,
 > not a security sandbox.
 
+## Working by ear
+
+[docs/USER_GUIDE.md](docs/USER_GUIDE.md) is a task-oriented walkthrough of
+the audio-first workflow: the iteration loop (Quick Evaluate, Run
+Selection, `?name`), building and reading the computational narrative
+(`Ctrl+Shift+E`), and keeping records of the flow (narrative, HTML, and
+script exports).
+
+## Packaging
+
+```bash
+npm run dist   # electron-builder: AppImage/deb, dmg/zip, or nsis/zip
+```
+
 ## Development
 
 ```bash

@@ -23,10 +23,12 @@
 └─────────────────────────────────────────────────────────────────────────────┘
                   ▲ preload.cjs: command(name, args) ⇅ onEvent(channel, payload)
 ┌──────────────────────────────── renderer ───────────────────────────────────┐
-│ src/renderer/app.js        bootstrap + toolbar wiring                       │
+│ src/renderer/app.js        bootstrap, toolbar, cursor commands, dialogs     │
 │ src/renderer/view.js       DOM keyed by cell id, rendered from store events │
 │ src/renderer/keyboard.js   focus-dependent keys (arrows, Enter/Escape, F6)  │
-│ src/renderer/announcer.js  the only two live regions in the app             │
+│ src/renderer/announcer.js  live regions + announcement history              │
+│ src/renderer/find.js       find/replace + F3; intelligence.js completion,   │
+│ navigation.js outline/narrative/history; quick-eval.js the scratchpad       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

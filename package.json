@@ -1,22 +1,50 @@
 {
   "name": "accessible-computational-notebook",
-  "version": "0.2.0",
-  "description": "A screen-reader-first, keyboard-only computational notebook with persistent Python and JavaScript kernels",
+  "version": "1.0.0",
+  "description": "A screen-reader-first, keyboard-only computational notebook: persistent Python, JavaScript, and Bash kernels, Jupyter .ipynb files, and an audio-first narrative workflow",
   "type": "module",
   "main": "src/main/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KyleKeane/accessible-computational-notebook.git"
+  },
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "dist": "electron-builder"
   },
   "keywords": [
     "notebook",
     "accessibility",
     "screen-reader",
+    "blind",
     "jupyter",
+    "wolfram",
     "electron"
   ],
   "license": "MIT",
   "devDependencies": {
-    "electron": "^35.0.0"
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "org.accessiblenotebook.app",
+    "productName": "Accessible Notebook",
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": ["nsis", "zip"]
+    }
   }
 }
