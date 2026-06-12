@@ -132,6 +132,14 @@ await notebook.getSource(created.index);
 > privileges. The child-process design is for robustness and restartability,
 > not a security sandbox.
 
+## Example notebooks
+
+- `examples/getting-started.ipynb` — the basics, cell by cell.
+- `examples/computational-narrative.ipynb` — the full audio-first
+  workflow: sections, an initialization cell, the exploration loop, and
+  the exported record.
+- `examples/rich-outputs.ipynb` — image descriptions and table navigation.
+
 ## Working by ear
 
 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) is a task-oriented walkthrough of
